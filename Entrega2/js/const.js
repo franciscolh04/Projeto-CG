@@ -22,8 +22,8 @@ const L_Olho = 0.2;
 const H_Olho = 0.2;
 const W_Olho = 0.2;
 
-const R_Ant = 0.2;
-const H_Ant = 0.7;
+const R_Ant = 0.5;
+const H_Ant = 0.5;
 
 const L_Coxa = 1;
 const H_Coxa = 3;
