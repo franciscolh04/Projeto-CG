@@ -12,21 +12,31 @@ var cameras = [], camera, scene, renderer;
 
 var object;
 
-var robot, container, head, trunk, abdomen, waist, leftWheel, rightWheel, leftArm, rightArm, leftLeg, rightLeg, feet, leg, lArm, rArm;
+var robot, trailer, head, trunk, abdomen, waist, leftWheel, rightWheel, leftArm, rightArm, leftLeg, rightLeg, feet, leg, lArm, rArm;
 
-let rotateHeadIn = false, rotateHeadOut = false, rotateLegIn = false, rotateLegOut = false,
-    rotateFeetIn = false, rotateFeetOut = false, displaceArmsIn = false, displaceArmsOut = false;
+let theta1 = 0, theta2 = 0, delta1 = 0, theta3 = 0;
+
+let rotateFeetIn = false, rotateFeetOut = false;
+let rotateWaistIn = false, rotateWaistOut = false;
+let displaceArmsIn = false, displaceArmsOut = false;
+let rotateHeadIn = false, rotateHeadOut = false;
 
 const materials = new Map(), clock = new THREE.Clock();
 var delta;
+
+var minTrailerAABB, maxTrailerAABB;
 
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
 function createScene() {
+    'use strict';
+
     scene = new THREE.Scene();
-    //scene.background = new THREE.Color(0xFEF9D9);
     scene.background = new THREE.Color(0xFFFFFF);
+
+    createRobot(0, 15, 0);
+    createTrailer(-150, 30, 0);
 }
 
 //////////////////////
@@ -251,6 +261,9 @@ function createLeg(side = "left") {
     footMesh.position.set(xSign * (-L_Perna + L_Pe)/2, -H_Coxa - H_Perna - H_Pe / 2, (-W_Perna + W_Pe)/2);
     leg.add(footMesh);
 
+    // Guardar referência ao pé
+    leg.foot = footMesh;
+
     // Roda Traseira 1
     const rearWheel1Geometry = new THREE.CylinderGeometry(R_Roda/2, R_Roda/2, H_Roda, 32);
     const rearWheel1Material = new THREE.MeshStandardMaterial({ color: 0x000000 });
@@ -272,39 +285,237 @@ function createLeg(side = "left") {
     return leg;
 }
 
+function createRobot(x, y, z) {
+    robot = new THREE.Group();
+
+    
+    head = createHead();
+    head.position.set(0, H_Tronco/2, 0);
+    robot.add(head);
+
+    trunk = createTrunk();
+    trunk.position.set(0, 0, 0);
+    robot.add(trunk);
+
+    abdomen = createAbdomen();
+    abdomen.position.set(0, -(H_Tronco + H_Ab) / 2, 0);
+    robot.add(abdomen);
+
+    waist = createWaist();
+    waist.position.set(0, -(H_Tronco + H_Ci)/2 - H_Ab, 0);
+    robot.add(waist);
+
+    leftWheel = createWheel();
+    leftWheel.position.set(L_Ci/2+H_Roda/2,-(H_Tronco+H_Ci + R_Roda)/2 - H_Ab, W_Ci / 2);
+    leftWheel.rotation.z = Math.PI / 2;
+    robot.add(leftWheel);
+    rightWheel = createWheel();
+    rightWheel.position.set(-(L_Ci/2+H_Roda/2),-(H_Tronco+H_Ci + R_Roda)/2 - H_Ab, W_Ci / 2);
+    rightWheel.rotation.z = Math.PI / 2;
+    robot.add(rightWheel);
+
+    leftArm = createArm("left");
+    leftArm.position.set((L_Tronco + L_Br)/2, (-H_Tronco + H_Ab)/2, -(W_Tronco + W_Br)/2);
+    robot.add(leftArm);
+    rightArm = createArm("right");
+    rightArm.position.set(-(L_Tronco + L_Br)/2,  (-H_Tronco + H_Ab)/2, -(W_Tronco + W_Br)/2);
+    robot.add(rightArm);
+
+    leftLeg = createLeg("left");
+    leftLeg.position.set((L_Ci - L_Perna)/2, -(H_Tronco )/2 - H_Ab - H_Ci, (W_Ci - W_Perna)/2);
+    robot.add(leftLeg);
+    rightLeg = createLeg("right");
+    rightLeg.position.set(-(L_Ci - L_Perna)/2,  -(H_Tronco )/2 - H_Ab - H_Ci,(W_Ci - W_Perna)/2);
+    robot.add(rightLeg);
+
+    scene.add(robot);
+    robot.position.set(x, y, z);
+}
+
+function createTrailer(x = 0, y = 0, z = 0) {
+    trailer = new THREE.Group();
+    // TODO: mudar posteriormente para const
+
+    // Corpo Principal
+    const mainBodyGeometry = new THREE.BoxGeometry(15, 8, 7);
+    const mainBodyMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+    const mainBodyMesh = new THREE.Mesh(mainBodyGeometry, mainBodyMaterial);
+    mainBodyMesh.position.set(0, 4, 0);
+    trailer.add(mainBodyMesh);
+
+    // Peça que liga o trailer ao robot
+    const connectorGeometry = new THREE.BoxGeometry(4, 2, 3);
+    const connectorMaterial = new THREE.MeshStandardMaterial({ color: 0x555555 });
+    const connectorMesh = new THREE.Mesh(connectorGeometry, connectorMaterial);
+    connectorMesh.position.set(-9.5, 1.5, 0); // in front of main body, near the bottom
+    trailer.add(connectorMesh);
+
+    // Rodas
+    //Esta função é necessária para criar as rodas do trailer ???
+    function addTrailerWheel(parent, x, y, z) {
+        const wheelGeometry = new THREE.CylinderGeometry(1.2, 1.2, 2, 24);
+        const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+        const wheelMesh = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        wheelMesh.rotation.z = Math.PI / 2;
+        wheelMesh.position.set(x, y, z);
+        parent.add(wheelMesh);
+    }
+
+    // Wheels at the four corners (slightly outside the body for realism)
+    const wheelY = -1.2; // just below the main body
+    const wheelZ = 3.5 ; // outside the body
+    addTrailerWheel(trailer,  6, wheelY,  wheelZ); // front right
+    addTrailerWheel(trailer, -6, wheelY,  wheelZ); // back right
+    addTrailerWheel(trailer,  6, wheelY, -wheelZ); // front left
+    addTrailerWheel(trailer, -6, wheelY, -wheelZ); // back left
+
+    scene.add(trailer);
+    trailer.position.set(x, y, z);
+    updateTrailerAABB();
+}
+
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
-function checkCollisions() {}
+function checkCollisions(delta, pos){
+    'use strict';
+
+    updateTrailerAABB(pos.x, pos.y); // check collision with tentativePos values
+
+    var newPos = pos;
+
+    if (maxTruckAABB.x > minTrailerAABB.x && minTruckAABB.x < maxTrailerAABB.x &&
+        maxTruckAABB.y > minTrailerAABB.y && minTruckAABB.y < maxTrailerAABB.y &&
+        maxTruckAABB.z > minTrailerAABB.z && minTruckAABB.z < maxTrailerAABB.z) 
+    {   
+        if (!trailer.userData.engaged) { // collision detected and trailer is not engaged -> engage (animation)
+            computeDisplacement(delta);
+            trailer.userData.engaging = true;
+            newPos.x = trailer.position.x;
+            newPos.y = trailer.position.z;
+        }
+    } else {
+        trailer.userData.engaged = false;
+    }
+
+    return newPos;
+
+}
 
 ///////////////////////
 /* HANDLE COLLISIONS */
 ///////////////////////
-function handleCollisions() {}
+function handleCollisions(){
+    'use strict';
+
+    if (elapsed < duration) { // animation
+        trailer.position.add(displacement);
+        elapsed += delta * animationSpeed;
+    } else { // end of animation, trailer/robot free to move
+        trailer.position.set(-95, 30, 0); // garantee trailer is in the right position
+        trailer.userData.engaging = false;
+        trailer.userData.engaged = true;
+        elapsed = 0;
+    }
+}
+
+function computeDisplacement(delta) {
+    const currentPos = trailer.position.clone();
+    const distance = targetPos.clone().sub(currentPos);
+    const velocity = distance.clone().divideScalar(duration).multiplyScalar(animationSpeed);
+    displacement = velocity.clone().multiplyScalar(delta);
+}
 
 ////////////
 /* UPDATE */
 ////////////
-function update() {}
+function update() {
+    delta = clock.getDelta();
+    const stepRot = Math.PI / 16; // passo de rotação
+    const stepArm = 0.25;         // passo de translação dos braços
+
+    // --- Feet rotation (θ1) ---
+    if (rotateFeetIn && leftLeg && rightLeg) {
+        theta1 = Math.max(theta1 - stepRot, -Math.PI / 2);
+        if (leftLeg.foot) leftLeg.foot.rotation.y = theta1;
+        if (rightLeg.foot) rightLeg.foot.rotation.y = theta1;
+        rotateFeetIn = false;
+    }
+    if (rotateFeetOut && leftLeg && rightLeg) {
+        theta1 = Math.min(theta1 + stepRot, 0);
+        if (leftLeg.foot) leftLeg.foot.rotation.y = theta1;
+        if (rightLeg.foot) rightLeg.foot.rotation.y = theta1;
+        rotateFeetOut = false;
+    }
+
+    // --- Waist rotation (θ2) ---
+    if (rotateWaistIn && waist) {
+        theta2 = Math.min(theta2 + stepRot, Math.PI/2);
+        waist.rotation.y = theta2;
+        rotateWaistIn = false;
+    }
+    if (rotateWaistOut && waist) {
+        theta2 = Math.max(theta2 - stepRot, -Math.PI/2);
+        waist.rotation.y = theta2;
+        rotateWaistOut = false;
+    }
+
+    // --- Arms translation (δ1) ---
+    if (displaceArmsIn && leftArm && rightArm) {
+        delta1 = Math.min(delta1 + stepArm, 2);
+        leftArm.position.x = (L_Tronco + L_Br) / 2 + delta1;
+        rightArm.position.x = -(L_Tronco + L_Br) / 2 - delta1;
+        displaceArmsIn = false;
+    }
+    if (displaceArmsOut && leftArm && rightArm) {
+        delta1 = Math.max(delta1 - stepArm, -2);
+        leftArm.position.x = (L_Tronco + L_Br) / 2 + delta1;
+        rightArm.position.x = -(L_Tronco + L_Br) / 2 - delta1;
+        displaceArmsOut = false;
+    }
+
+    // --- Head rotation (θ3) ---
+    if (rotateHeadIn && head) {
+        theta3 = Math.min(theta3 + stepRot, Math.PI/2);
+        head.rotation.y = theta3;
+        rotateHeadIn = false;
+    }
+    if (rotateHeadOut && head) {
+        theta3 = Math.max(theta3 - stepRot, -Math.PI/2);
+        head.rotation.y = theta3;
+        rotateHeadOut = false;
+    }
+}
+
+function updateTrailerAABB(x, z) {
+    'use strict';
+    
+    // 150, 90, 70
+    minTrailerAABB = new THREE.Vector3(x - 150 / 2, trailer.position.y - 90 / 2 + 15, z - 70 / 2);
+    maxTrailerAABB = new THREE.Vector3(x + 150 / 2, trailer.position.y + 90 / 2 + 15, z + 70 / 2);
+}
 
 /////////////
 /* DISPLAY */
 /////////////
-function render() {}
+function render() {
+    'use strict';
+    renderer.render(scene, camera);
+}
 
 ////////////////////////////////
 /* INITIALIZE ANIMATION CYCLE */
 ////////////////////////////////
 function init() {
-    createScene();
-    createCameras();
-
     // Criar renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Adicionar controlo orbital
+    createScene();
+    createCameras();
+
+    // Agora sim, já podes criar os OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.update();
 
@@ -321,50 +532,8 @@ function init() {
     const axesHelper = new THREE.AxesHelper(5); // tamanho 5 unidades
     scene.add(axesHelper);
 
-    // Robot
-    robot = new THREE.Group();
-
-    
-    head = createHead();
-    head.position.set(0, H_Tronco/2, 0);
-    robot.add(head);
-    trunk = createTrunk();
-    trunk.position.set(0, 0, 0);
-    robot.add(trunk);
-    abdomen = createAbdomen();
-    abdomen.position.set(0, -(H_Tronco + H_Ab) / 2, 0);
-    robot.add(abdomen);
-    waist = createWaist();
-    waist.position.set(0, -(H_Tronco + H_Ci)/2 - H_Ab, 0);
-    robot.add(waist);
-    leftWheel = createWheel();
-    leftWheel.position.set(L_Ci/2+H_Roda/2,-(H_Tronco+H_Ci + R_Roda)/2 - H_Ab, W_Ci / 2);
-    leftWheel.rotation.z = Math.PI / 2;
-    robot.add(leftWheel);
-    rightWheel = createWheel();
-    rightWheel.position.set(-(L_Ci/2+H_Roda/2),-(H_Tronco+H_Ci + R_Roda)/2 - H_Ab, W_Ci / 2);
-    rightWheel.rotation.z = Math.PI / 2;
-    robot.add(rightWheel);
-    leftArm = createArm("left");
-    leftArm.position.set((L_Tronco + L_Br)/2, (-H_Tronco + H_Ab)/2, -(W_Tronco + W_Br)/2);
-    robot.add(leftArm);
-    rightArm = createArm("right");
-    rightArm.position.set(-(L_Tronco + L_Br)/2,  (-H_Tronco + H_Ab)/2, -(W_Tronco + W_Br)/2);
-    robot.add(rightArm);
-    leftLeg = createLeg("left");
-    leftLeg.position.set((L_Ci - L_Perna)/2, -(H_Tronco )/2 - H_Ab - H_Ci, (W_Ci - W_Perna)/2);
-    robot.add(leftLeg);
-    rightLeg = createLeg("right");
-    rightLeg.position.set(-(L_Ci - L_Perna)/2,  -(H_Tronco )/2 - H_Ab - H_Ci,(W_Ci - W_Perna)/2);
-    robot.add(rightLeg);
-
-    
-    
-   
-    scene.add(robot);
-
     window.addEventListener('keydown', onKeyDown);
-
+    window.addEventListener('keyup', onKeyUp);
 }
 
 
@@ -372,15 +541,24 @@ function init() {
 /* ANIMATION CYCLE */
 /////////////////////
 function animate() {
-    requestAnimationFrame(animate);
+    update();
+
     renderer.render(scene, camera);
+    requestAnimationFrame(animate);
 }
 
 
 ////////////////////////////
 /* RESIZE WINDOW CALLBACK */
 ////////////////////////////
-function onResize() {}
+function onResize() { 
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    if (window.innerHeight > 0 && window.innerWidth > 0) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+    }
+}
 
 ///////////////////////
 /* KEY DOWN CALLBACK */
@@ -399,6 +577,30 @@ function onKeyDown(e) {
         case '4':
             camera = cameras[3]; // perspetiva
             break;
+        case 'q':
+            rotateFeetIn = true;
+            break;
+        case 'a':
+            rotateFeetOut = true;
+            break;
+        case 'w':
+            rotateWaistIn = true;
+            break;
+        case 's':
+            rotateWaistOut = true;
+            break;
+        case 'e':
+            displaceArmsIn = true;
+            break;
+        case 'd':
+            displaceArmsOut = true;
+            break;
+        case 'r':
+            rotateHeadIn = true;
+            break;
+        case 'f':
+            rotateHeadOut = true;
+            break;
     }
 }
 
@@ -406,7 +608,9 @@ function onKeyDown(e) {
 ///////////////////////
 /* KEY UP CALLBACK */
 ///////////////////////
-function onKeyUp(e) {}
+function onKeyUp(e) {
+    keys[e.code] = false;
+}
 
 init();
 animate();
