@@ -11,8 +11,9 @@ import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 var cameras = [], camera, scene, renderer;
 
 var object;
+const keys = {};
 
-var robot, trailer, head, trunk, abdomen, waist, leftWheel, rightWheel, leftArm, rightArm, leftLeg, rightLeg, feet, leg, lArm, rArm;
+var robot, trailer, head, headPivot, trunk, abdomen, waist, leftWheel, rightWheel, leftArm, rightArm, leftLeg, rightLeg, feet, leg, lArm, rArm;
 
 let theta1 = 0, theta2 = 0, delta1 = 0, theta3 = 0;
 
@@ -26,6 +27,9 @@ var delta;
 
 var minTrailerAABB, maxTrailerAABB;
 
+const trailerMove = { left: false, right: false, up: false, down: false };
+const TRAILER_SPEED = 20; // unidades por segundo (ajusta conforme necessário)
+
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -36,7 +40,7 @@ function createScene() {
     scene.background = new THREE.Color(0xFFFFFF);
 
     createRobot(0, 15, 0);
-    createTrailer(-150, 30, 0);
+    createTrailer(0, 15, -30); // ou outro valor negativo em Z, ajusta conforme o teu modelo
 }
 
 //////////////////////
@@ -86,50 +90,55 @@ function createCameras() {
 /* CREATE HEAD */
 /////////////////
 function createHead() {
-    const head = new THREE.Group();
+    // Pivot para rotação: origem no ponto de rotação (base/trás da cabeça)
+    const headPivot = new THREE.Group();
+
+    // Container da cabeça: origem no canto inferior/traseiro da cabeça
+    const headContainer = new THREE.Group();
+    headContainer.position.set(0, 0, -W_Ca / 2);
 
     // Cabeça (cubóide)
-    const headGeometry = new THREE.BoxGeometry(1, 1, 1);  // geometria unitária para depois aplicar escala
+    const headGeometry = new THREE.BoxGeometry(1, 1, 1);
     const headMaterial = new THREE.MeshStandardMaterial({ color: 0x3d4ac4 });
     const headMesh = new THREE.Mesh(headGeometry, headMaterial);
-
-    // Aplica escala e posição conforme grafo
     headMesh.scale.set(L_Ca, H_Ca, W_Ca);
-    headMesh.position.set(0, H_Ca / 2, 0);
-    head.add(headMesh);
+    headMesh.position.set(0, H_Ca/2, 0);
+    headContainer.add(headMesh);
 
-    // Olho Esquerdo (paralelepípedo)
-    const eyeGeometry = new THREE.BoxGeometry(1, 1, 1);  // geometria unitária
+    // Olho Esquerdo
+    const eyeGeometry = new THREE.BoxGeometry(1, 1, 1);
     const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xfaf61b });
-
     const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
     leftEye.scale.set(L_Olho, H_Olho, W_Olho);
     leftEye.position.set(L_Ca / 4, 2 * H_Ca / 3, (W_Ca + W_Olho) / 2);
-    head.add(leftEye);
+    headContainer.add(leftEye);
 
-    // Olho Direito (mesma escala e posição em X invertida)
+    // Olho Direito
     const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
     rightEye.scale.set(L_Olho, H_Olho, W_Olho);
     rightEye.position.set(-L_Ca / 4, 2 * H_Ca / 3, (W_Ca + W_Olho) / 2);
-    head.add(rightEye);
+    headContainer.add(rightEye);
 
-    // Antena Esquerda (cone)
-    const antennaGeometry = new THREE.ConeGeometry(1, 1, 32);  // geometria unitária
+    // Antena Esquerda
+    const antennaGeometry = new THREE.ConeGeometry(1, 1, 32);
     const antennaMaterial = new THREE.MeshStandardMaterial({ color: 0x3d4ac4 });
-
     const leftAntenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
     leftAntenna.scale.set(R_Ant/2, H_Ant, R_Ant/2);
-    leftAntenna.position.set((L_Ca - R_Ant) / 2, H_Ca + H_Ant / 2, (-W_Ca + R_Ant) / 2); // mudámos aqui
-    head.add(leftAntenna);
+    leftAntenna.position.set((L_Ca - R_Ant) / 2, H_Ca + H_Ant / 2, (-W_Ca + R_Ant) / 2);
+    headContainer.add(leftAntenna);
 
-    // Antena Direita (posição espelhada em X)
+    // Antena Direita
     const rightAntenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
     rightAntenna.scale.set(R_Ant/2, H_Ant, R_Ant/2);
-    rightAntenna.position.set(-(L_Ca - R_Ant) / 2 , H_Ca + H_Ant / 2, (-W_Ca + R_Ant) / 2); // mudámos aqui
-    head.add(rightAntenna);
+    rightAntenna.position.set(-(L_Ca - R_Ant) / 2, H_Ca + H_Ant / 2, (-W_Ca + R_Ant) / 2);
+    headContainer.add(rightAntenna);
 
-    return head;
+    // Junta o container ao pivot
+    headPivot.add(headContainer);
+
+    return headPivot;
 }
+
 
 /////////////////
 /* CREATE BODY */
@@ -236,8 +245,6 @@ function createArm(side = "left") {
 
 function createLeg(side = "left") {
     const leg = new THREE.Group();
-
-    // Sinal para espelhar em X se for a perna direita
     const xSign = (side === "left") ? 1 : -1;
 
     // Coxa
@@ -254,15 +261,30 @@ function createLeg(side = "left") {
     legMesh.position.set(0, -H_Coxa - H_Perna / 2, 0);
     leg.add(legMesh);
 
-    // Pé
+    // PIVOT DO PÉ
+    const footPivot = new THREE.Group();
+
+    // O mesh do pé
     const footGeometry = new THREE.BoxGeometry(L_Pe, H_Pe, W_Pe);
     const footMaterial = new THREE.MeshStandardMaterial({ color: 0x3d4ac4 });
     const footMesh = new THREE.Mesh(footGeometry, footMaterial);
-    footMesh.position.set(xSign * (-L_Perna + L_Pe)/2, -H_Coxa - H_Perna - H_Pe / 2, (-W_Perna + W_Pe)/2);
-    leg.add(footMesh);
 
-    // Guardar referência ao pé
-    leg.foot = footMesh;
+    // Desloca o mesh do pé para a frente e para baixo, para que o pivot fique no calcanhar
+    footMesh.position.set(0, -H_Pe/2, W_Pe/2);
+
+    footPivot.add(footMesh);
+
+    // Coloca o pivot do pé na base e atrás da perna
+    footPivot.position.set(
+        xSign * (-L_Perna/2), // linha de trás do pé, alinhada com a perna
+        -H_Coxa - H_Perna,    // base da perna
+        0
+    );
+
+    leg.add(footPivot);
+
+    // Guarda referência ao pivot do pé
+    leg.foot = footPivot;
 
     // Roda Traseira 1
     const rearWheel1Geometry = new THREE.CylinderGeometry(R_Roda/2, R_Roda/2, H_Roda, 32);
@@ -334,7 +356,6 @@ function createRobot(x, y, z) {
 
 function createTrailer(x = 0, y = 0, z = 0) {
     trailer = new THREE.Group();
-    // TODO: mudar posteriormente para const
 
     // Corpo Principal
     const mainBodyGeometry = new THREE.BoxGeometry(15, 8, 7);
@@ -356,7 +377,7 @@ function createTrailer(x = 0, y = 0, z = 0) {
         const wheelGeometry = new THREE.CylinderGeometry(1.2, 1.2, 2, 24);
         const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
         const wheelMesh = new THREE.Mesh(wheelGeometry, wheelMaterial);
-        wheelMesh.rotation.z = Math.PI / 2;
+        wheelMesh.rotation.x = Math.PI / 2;
         wheelMesh.position.set(x, y, z);
         parent.add(wheelMesh);
     }
@@ -371,6 +392,7 @@ function createTrailer(x = 0, y = 0, z = 0) {
 
     scene.add(trailer);
     trailer.position.set(x, y, z);
+    trailer.rotation.y = Math.PI / 2; // Alinha o reboque com o camião (eixo Z)
     updateTrailerAABB();
 }
 
@@ -431,38 +453,40 @@ function computeDisplacement(delta) {
 ////////////
 function update() {
     delta = clock.getDelta();
-    const stepRot = Math.PI / 16; // passo de rotação
-    const stepArm = 0.25;         // passo de translação dos braços
+    const stepRot = Math.PI / 16;
+    const stepArm = 0.25;
 
     // --- Feet rotation (θ1) ---
     if (rotateFeetIn && leftLeg && rightLeg) {
-        theta1 = Math.max(theta1 - stepRot, -Math.PI / 2);
-        if (leftLeg.foot) leftLeg.foot.rotation.y = theta1;
-        if (rightLeg.foot) rightLeg.foot.rotation.y = theta1;
+        theta1 = Math.min(theta1 + stepRot, Math.PI / 2);
+        if (leftLeg.foot) leftLeg.foot.rotation.x = theta1;
+        if (rightLeg.foot) rightLeg.foot.rotation.x = theta1;
         rotateFeetIn = false;
     }
     if (rotateFeetOut && leftLeg && rightLeg) {
-        theta1 = Math.min(theta1 + stepRot, 0);
-        if (leftLeg.foot) leftLeg.foot.rotation.y = theta1;
-        if (rightLeg.foot) rightLeg.foot.rotation.y = theta1;
+        theta1 = Math.max(theta1 - stepRot, 0);
+        if (leftLeg.foot) leftLeg.foot.rotation.x = theta1;
+        if (rightLeg.foot) rightLeg.foot.rotation.x = theta1;
         rotateFeetOut = false;
     }
 
     // --- Waist rotation (θ2) ---
-    if (rotateWaistIn && waist) {
+    if (rotateWaistIn && leftLeg && rightLeg) {
         theta2 = Math.min(theta2 + stepRot, Math.PI/2);
-        waist.rotation.y = theta2;
+        leftLeg.rotation.x = theta2;
+        rightLeg.rotation.x = theta2;
         rotateWaistIn = false;
     }
-    if (rotateWaistOut && waist) {
-        theta2 = Math.max(theta2 - stepRot, -Math.PI/2);
-        waist.rotation.y = theta2;
+    if (rotateWaistOut && leftLeg && rightLeg) {
+        theta2 = Math.max(theta2 - stepRot, 0);
+        leftLeg.rotation.x = theta2;
+        rightLeg.rotation.x = theta2;
         rotateWaistOut = false;
     }
 
     // --- Arms translation (δ1) ---
     if (displaceArmsIn && leftArm && rightArm) {
-        delta1 = Math.min(delta1 + stepArm, 2);
+        delta1 = Math.min(delta1 + stepArm, 0);
         leftArm.position.x = (L_Tronco + L_Br) / 2 + delta1;
         rightArm.position.x = -(L_Tronco + L_Br) / 2 - delta1;
         displaceArmsIn = false;
@@ -476,15 +500,34 @@ function update() {
 
     // --- Head rotation (θ3) ---
     if (rotateHeadIn && head) {
-        theta3 = Math.min(theta3 + stepRot, Math.PI/2);
-        head.rotation.y = theta3;
+        theta3 = Math.max(theta3 - stepRot, -Math.PI);
+        head.rotation.x = theta3;
         rotateHeadIn = false;
     }
     if (rotateHeadOut && head) {
-        theta3 = Math.max(theta3 - stepRot, -Math.PI/2);
-        head.rotation.y = theta3;
+        theta3 = Math.min(theta3 + stepRot, 0);
+        head.rotation.x = theta3;
         rotateHeadOut = false;
     }
+
+    // --- Trailer movement (setas) ---
+    if (trailer) {
+        let moveY = 0, moveZ = 0;
+        if (trailerMove.left)  moveZ -= 1; // Esquerda = frente (Z-)
+        if (trailerMove.right) moveZ += 1; // Direita = trás (Z+)
+        if (trailerMove.up)    moveY += 1; // Cima = sobe (Y+)
+        if (trailerMove.down)  moveY -= 1; // Baixo = desce (Y-)
+
+        // Normaliza para velocidade constante em diagonal
+        if (moveY !== 0 || moveZ !== 0) {
+            const len = Math.sqrt(moveY * moveY + moveZ * moveZ);
+            moveY /= len;
+            moveZ /= len;
+            trailer.position.y += moveY * TRAILER_SPEED * delta;
+            trailer.position.z += moveZ * TRAILER_SPEED * delta;
+        }
+    }
+
 }
 
 function updateTrailerAABB(x, z) {
@@ -501,6 +544,18 @@ function updateTrailerAABB(x, z) {
 function render() {
     'use strict';
     renderer.render(scene, camera);
+}
+
+function setWireframeMode(enabled) {
+    scene.traverse(function(obj) {
+        if (obj.isMesh && obj.material) {
+            if (Array.isArray(obj.material)) {
+                obj.material.forEach(mat => mat.wireframe = enabled);
+            } else {
+                obj.material.wireframe = enabled;
+            }
+        }
+    });
 }
 
 ////////////////////////////////
@@ -601,16 +656,47 @@ function onKeyDown(e) {
         case 'f':
             rotateHeadOut = true;
             break;
+        case 'ArrowLeft':
+            trailerMove.left = true;
+            break;
+        case 'ArrowRight':
+            camera = cameras[3]; // frontal
+            trailerMove.right = true;
+            break;
+        case 'ArrowUp':
+            trailerMove.up = true;
+            break;
+        case 'ArrowDown':
+            trailerMove.down = true;
+            break;
+        case '7':
+            isWireframe = !isWireframe;
+            setWireframeMode(isWireframe);
+            break;
     }
 }
 
 
 ///////////////////////
 /* KEY UP CALLBACK */
-///////////////////////
 function onKeyUp(e) {
-    keys[e.code] = false;
+    switch (e.key) {
+        case 'ArrowLeft':
+            trailerMove.left = false;
+            break;
+        case 'ArrowRight':
+            trailerMove.right = false;
+            break;
+        case 'ArrowUp':
+            trailerMove.up = false;
+            break;
+        case 'ArrowDown':
+            trailerMove.down = false;
+            break;
+    }
 }
+
+let isWireframe = false;
 
 init();
 animate();
