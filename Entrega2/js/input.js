@@ -49,7 +49,7 @@ export function onKeyDown(e) {
         case 70: // f
             window.rotateHeadOut = true;
             break;
-        case 54: // 6
+        case 55: // 7
             window.materials.forEach(value => { value.wireframe = !value.wireframe; });
             break;
     }

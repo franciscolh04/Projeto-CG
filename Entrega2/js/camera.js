@@ -5,8 +5,8 @@ export let camera;
 
 export function createCameras() {
     const positions = [
-        [100, 0, 0],
         [0, 0, 100],
+        [100, 0, 0],
         [0, 150, 0],
         [150, 100, 150],
         [500, 500, 500]

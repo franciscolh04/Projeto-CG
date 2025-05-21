@@ -1,55 +1,55 @@
 
-const L_Tronco = 10;
-const H_Tronco = 4;
-const W_Tronco = 4;
+const L_Tronco = 100;
+const H_Tronco = 40;
+const W_Tronco = 40;
 
-const L_Ab = 6;
-const H_Ab = 3;
-const W_Ab = 4;
+const L_Ab = 60;
+const H_Ab = 30;
+const W_Ab = 40;
 
-const L_Ci = 8;
-const H_Ci = 2;
-const W_Ci = 4;
+const L_Ci = 100;
+const H_Ci = 20;
+const W_Ci = 40;
 
-const R_Roda = 1.5;
-const H_Roda = 1;
+const R_Roda = 15;
+const H_Roda = 10;
 
-const L_Ca = 2;
-const H_Ca = 2;
-const W_Ca = 2;
+const L_Ca = 20;
+const H_Ca = 20;
+const W_Ca = 20;
 
-const L_Olho = 0.2;
-const H_Olho = 0.2;
-const W_Olho = 0.2;
+const L_Olho = 2;
+const H_Olho = 2;
+const W_Olho = 2;
 
-const R_Ant = 0.5;
-const H_Ant = 0.5;
+const R_Ant = 10;
+const H_Ant = 10;
 
-const L_Coxa = 1;
-const H_Coxa = 3;
-const W_Coxa = 1;
+const L_Coxa = 10;
+const H_Coxa = 30;
+const W_Coxa = 10;
 
-const L_Perna = 2;
-const H_Perna = 6;
-const W_Perna = 2;
+const L_Perna = 20;
+const H_Perna = 80;
+const W_Perna = 20;
 
-const L_Pe = 3;
-const H_Pe = 1;
-const W_Pe = 3;
+const L_Pe = 30;
+const H_Pe = 20;
+const W_Pe = 30;
 
-const L_An = 2;
-const H_An = 5;
-const W_An = 2;
+const L_An = 20;
+const H_An = 20;
+const W_An = 50;
 
-const L_Br = 2;
-const H_Br = 5;
-const W_Br = 2;
+const L_Br = 20;
+const H_Br = 50;
+const W_Br = 20;
 
-const R_Mao = 1;
-const H_Mao = 1;
+const R_Mao = 10;
+const H_Mao = 10;
 
-const R_Tu = 0.5;
-const H_Tu = 6;
+const R_Tu = 5;
+const H_Tu = 60;
 
 export {
     L_Tronco, H_Tronco, W_Tronco, 

@@ -12,7 +12,8 @@ function addWheel(obj, x, y, z) {
 export function createTrailer(x, y, z) {
     window.trailer = new THREE.Object3D();
     window.trailer.userData = { engaging: false, engaged: false, displacement: new THREE.Vector3(0, 0, 0) };
-
+    
+    /*
     // Main trailer body
     let geometry = new THREE.BoxGeometry(150, 80, 70);
     let mesh = new THREE.Mesh(geometry, materials.get("trailer"));
@@ -30,7 +31,8 @@ export function createTrailer(x, y, z) {
     addWheel(window.trailer, -20, -22.5, -40);
     addWheel(window.trailer, -60, -22.5, 40);
     addWheel(window.trailer, -20, -22.5, 40);
-
+    */
     window.scene.add(window.trailer);
     window.trailer.position.set(x, y, z);
+
 }

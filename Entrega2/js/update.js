@@ -1,5 +1,19 @@
 import * as THREE from "three";
 import { checkCollisions, handleCollisions, computeDisplacement } from "./collisions.js";
+import {L_Tronco, H_Tronco, W_Tronco, 
+    L_Ab, H_Ab, W_Ab,
+    L_Ci, H_Ci, W_Ci,
+    R_Roda, H_Roda,
+    L_Ca, H_Ca, W_Ca,
+    L_Olho, H_Olho, W_Olho,
+    R_Ant, H_Ant,
+    L_Coxa, H_Coxa, W_Coxa,
+    L_Perna, H_Perna, W_Perna,
+    L_Pe, H_Pe, W_Pe,
+    L_An, H_An, W_An,
+    L_Br, H_Br, W_Br,
+    R_Mao, H_Mao,
+    R_Tu, H_Tu} from "./const.js";
 
 ////////////
 /* UPDATE */
@@ -51,37 +65,41 @@ export function updateMovement() {
 export function handleRotations(delta) {
     'use strict';
     if (rotateFeetIn) {
-        feet.rotation.z = THREE.MathUtils.clamp(feet.rotation.z + delta * 5, - Math.PI / 2, 0);
+        rFeet.rotation.x = THREE.MathUtils.clamp(rFeet.rotation.x - delta * 5, 0, Math.PI/2);
+        lFeet.rotation.x = THREE.MathUtils.clamp(lFeet.rotation.x - delta * 5, 0, Math.PI/2);
         rotateFeetIn = false;
     }
     if (rotateFeetOut) {
-        feet.rotation.z = THREE.MathUtils.clamp(feet.rotation.z - delta * 5, - Math.PI / 2, 0);
+        rFeet.rotation.x = THREE.MathUtils.clamp(rFeet.rotation.x + delta * 5, 0, Math.PI/2 );
+        lFeet.rotation.x = THREE.MathUtils.clamp(lFeet.rotation.x + delta * 5, 0, Math.PI/2);
         rotateFeetOut = false;
     }
     if (rotateLegIn) {
-        leg.rotation.z = THREE.MathUtils.clamp(leg.rotation.z + delta * 5, - Math.PI / 2, 0);
+        rLeg.rotation.x = THREE.MathUtils.clamp(rLeg.rotation.x + delta * 5, 0, Math.PI / 2);
+        lLeg.rotation.x = THREE.MathUtils.clamp(lLeg.rotation.x + delta * 5, 0, Math.PI / 2);
         rotateLegIn = false;
     }
     if (rotateLegOut) {
-        leg.rotation.z = THREE.MathUtils.clamp(leg.rotation.z - delta * 5, - Math.PI / 2, 0);
+        rLeg.rotation.x = THREE.MathUtils.clamp(rLeg.rotation.x - delta * 5, 0,  Math.PI / 2);
+        lLeg.rotation.x = THREE.MathUtils.clamp(lLeg.rotation.x - delta * 5, 0,  Math.PI / 2)
         rotateLegOut = false;
     }
     if (rotateHeadIn) {
-        head.rotation.z = THREE.MathUtils.clamp(head.rotation.z - delta * 5, 0, Math.PI / 2);
+        head.rotation.x = THREE.MathUtils.clamp(head.rotation.x + delta * 5, - Math.PI, 0);
         rotateHeadIn = false;
     }
     if (rotateHeadOut) {
-        head.rotation.z = THREE.MathUtils.clamp(head.rotation.z + delta * 5, 0, Math.PI / 2);
+        head.rotation.x = THREE.MathUtils.clamp(head.rotation.x - delta * 5, - Math.PI, 0);
         rotateHeadOut = false;
     }
     if (displaceArmsIn) {
-        lArm.position.z = THREE.MathUtils.clamp(lArm.position.z + delta * 50, 25, 45);
-        rArm.position.z = THREE.MathUtils.clamp(rArm.position.z - delta * 50, -45, -25);
+        lArm.position.x = THREE.MathUtils.clamp(lArm.position.x + delta * 50, lArm.position.x, 60);
+        rArm.position.x = THREE.MathUtils.clamp(rArm.position.x - delta * 50, -60, rArm.position.x);
         displaceArmsIn = false;
     }
     if (displaceArmsOut) {
-        lArm.position.z = THREE.MathUtils.clamp(lArm.position.z - delta * 50, 25, 45);
-        rArm.position.z = THREE.MathUtils.clamp(rArm.position.z + delta * 50, -45, -25);
+        lArm.position.x = THREE.MathUtils.clamp(lArm.position.x - delta * 50, 40, lArm.position.x);
+        rArm.position.x = THREE.MathUtils.clamp(rArm.position.x + delta * 50, rArm.position.x, -40);
         displaceArmsOut = false;
     }
     checkTruckMode();
