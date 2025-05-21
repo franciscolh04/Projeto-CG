@@ -1,5 +1,19 @@
 import * as THREE from "three";
 import { materials } from "./materials.js";
+import {L_Tronco, H_Tronco, W_Tronco, 
+    L_Ab, H_Ab, W_Ab,
+    L_Ci, H_Ci, W_Ci,
+    R_Roda, H_Roda,
+    L_Ca, H_Ca, W_Ca,
+    L_Olho, H_Olho, W_Olho,
+    R_Ant, H_Ant,
+    L_Coxa, H_Coxa, W_Coxa,
+    L_Perna, H_Perna, W_Perna,
+    L_Pe, H_Pe, W_Pe,
+    L_An, H_An, W_An,
+    L_Br, H_Br, W_Br,
+    R_Mao, H_Mao,
+    R_Tu, H_Tu} from "./const.js";
 
 // These should be declared in a shared/global scope or passed as parameters if you want to avoid globals
 function addEye(obj, x, y, z) {
@@ -87,8 +101,8 @@ function addWheel(obj, x, y, z) {
 }
 
 function addWaist(obj, x, y, z) {
-    addWheel(obj, x, y - 7.5, z - 40);
-    addWheel(obj, x, y - 7.5, z + 40);
+    addWheel(obj, x + 7, y - 7.5, z - 40);
+    addWheel(obj, x + 7, y - 7.5, z + 40);
 
     const geometry = new THREE.BoxGeometry(40, 20, 70);
     const mesh = new THREE.Mesh(geometry, materials.get("waist"));
@@ -141,7 +155,7 @@ export function createRobot(x, y, z) {
     addAbdomen(window.robot, 0, 20, 0);
     addTorso(window.robot, 0, 50, 0);
 
-    head.position.set(10, 60, 0);
+    head.position.set(-10, 60, 0);
     addHead(window.robot, 0, 20, 0);
 
     lArm.position.set(-10, 50, 45);

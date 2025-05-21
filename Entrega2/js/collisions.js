@@ -34,7 +34,7 @@ export function handleCollisions(delta) {
         window.trailer.position.add(window.displacement);
         window.elapsed += delta * window.animationSpeed;
     } else {
-        window.trailer.position.set(-95, 30, 0); // guarantee trailer is in the right position
+        window.trailer.position.set(-125, 30, 0); // guarantee trailer is in the right position
         window.trailer.userData.engaging = false;
         window.trailer.userData.engaged = true;
         window.elapsed = 0;

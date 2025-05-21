@@ -55,7 +55,7 @@ function init() {
     window.duration = 5;
     window.animationSpeed = 2;
     window.displacement = new THREE.Vector3(0, 0, 0);
-    window.targetPos = new THREE.Vector3(-95, 30, 0);
+    window.targetPos = new THREE.Vector3(-125, 30, 0);
 }
 
 function animate() {
