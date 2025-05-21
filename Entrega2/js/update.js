@@ -55,10 +55,10 @@ export function updateMovement() {
         window.movementVector.x += 100;
     }
     if (window.keys['ArrowLeft']) {
-        window.movementVector.y += 100;
+        window.movementVector.z += 100;
     }
     if (window.keys['ArrowRight']) {
-        window.movementVector.y -= 100;
+        window.movementVector.z -= 100;
     }
 }
 

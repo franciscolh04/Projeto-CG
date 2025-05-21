@@ -39,7 +39,7 @@ const W_Pe = 30;
 
 const L_An = 20;
 const H_An = 20;
-const W_An = 50;
+const W_An = 60;
 
 const L_Br = 20;
 const H_Br = 50;
