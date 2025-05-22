@@ -4,10 +4,28 @@ import { createScene } from "./scene.js";
 import { createCameras, cameras, camera } from "./camera.js";
 import { update, handleRotations, updateTruckPosition, updateTrailerAABB, checkTruckMode } from "./update.js";
 import { onKeyDown, onKeyUp } from "./input.js";
+import {L_Tronco, H_Tronco, W_Tronco, 
+    L_Ab, H_Ab, W_Ab,
+    L_Ci, H_Ci, W_Ci,
+    R_Roda, H_Roda,
+    L_Ca, H_Ca, W_Ca,
+    L_Olho, H_Olho, W_Olho,
+    R_Ant, H_Ant,
+    L_Coxa, H_Coxa, W_Coxa,
+    L_Perna, H_Perna, W_Perna,
+    L_Pe, H_Pe, W_Pe,
+    L_An, H_An, W_An,
+    L_Br, H_Br, W_Br,
+    R_Mao, H_Mao,
+    R_Tu, H_Tu,
+    L_Trailer,
+    H_Trailer,
+    H_LowerT,
+    W_Trailer } from "./const.js";
 
 const keys = {};
 let renderer, clock = new THREE.Clock();
-const movementVector = new THREE.Vector2(0, 0);
+const movementVector = new THREE.Vector3(0, 0, 0);
 
 function render() {
     renderer.render(window.scene, window.camera);
@@ -45,17 +63,17 @@ function init() {
     window.clock = clock;
 
     window.movementVector = movementVector;
-
-    window.minTruckAABB = new THREE.Vector3(-120 / 2 - 40, 0, -70 / 2);
-    window.maxTruckAABB = new THREE.Vector3(120 / 2 - 40, 80, 70 / 2);
-    window.minTrailerAABB = new THREE.Vector3(-150 / 2, 0, -70 / 2);
-    window.maxTrailerAABB = new THREE.Vector3(150 / 2, 80, 70 / 2);
+    
+    window.minTruckAABB = new THREE.Vector3(-L_Ci/2, -H_Ci / 2, - H_Coxa - H_Perna - W_Pe + H_Pe / 2);
+    window.maxTruckAABB = new THREE.Vector3(L_Ci/2, H_Ci / 2 + H_Ab + H_Tronco, W_Ci / 2);
+    window.minTrailerAABB = new THREE.Vector3(-L_Trailer/2, -H_Trailer/2 - H_LowerT, -W_Trailer/2);
+    window.maxTrailerAABB = new THREE.Vector3(L_Trailer/2, H_Trailer/2 , W_Trailer/2);
 
     window.elapsed = 0;
     window.duration = 5;
     window.animationSpeed = 2;
     window.displacement = new THREE.Vector3(0, 0, 0);
-    window.targetPos = new THREE.Vector3(-125, 30, 0);
+    window.targetPos = new THREE.Vector3(0, 0, -W_Ci/2 -W_Br -W_Trailer/2 - W_Olho);
 }
 
 function animate() {

@@ -1,4 +1,3 @@
-
 const L_Tronco = 100;
 const H_Tronco = 50;
 const W_Tronco = 40;
