@@ -1,10 +1,10 @@
 
 const L_Tronco = 100;
-const H_Tronco = 40;
+const H_Tronco = 50;
 const W_Tronco = 40;
 
 const L_Ab = 60;
-const H_Ab = 30;
+const H_Ab = 20;
 const W_Ab = 40;
 
 const L_Ci = 100;
@@ -51,6 +51,14 @@ const H_Mao = 10;
 const R_Tu = 5;
 const H_Tu = 60;
 
+const L_Trailer = 70;
+const H_Trailer = 80;
+const W_Trailer = 150;
+
+const L_LowerT = 70;
+const H_LowerT = 20;
+const W_LowerT = 50;
+
 export {
     L_Tronco, H_Tronco, W_Tronco, 
     L_Ab, H_Ab, W_Ab,
@@ -65,6 +73,8 @@ export {
     L_An, H_An, W_An,
     L_Br, H_Br, W_Br,
     R_Mao, H_Mao,
-    R_Tu, H_Tu
+    R_Tu, H_Tu, 
+    H_Trailer, L_Trailer, W_Trailer,
+    H_LowerT, L_LowerT, W_LowerT
 };
 
