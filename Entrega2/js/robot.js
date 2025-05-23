@@ -136,7 +136,7 @@ function addLeg(obj, x, y, z) {
 function addThigh(obj, x, y, z) {
     const geometry = new THREE.BoxGeometry(L_Coxa, H_Coxa, W_Coxa);
     const mesh = new THREE.Mesh(geometry, materials.get("thigh"));
-    mesh.position.set(x, (-H_Coxa - H_Ci)/2, z);
+    mesh.position.set(0, (-H_Coxa - H_Ci)/2, z);
 
     addLeg(mesh, x, y - (H_Coxa + H_Perna)/2 , z);
     
@@ -165,26 +165,25 @@ export function createRobot(x, y, z) {
     window.robot = new THREE.Object3D();
     window.robot.userData = { truck: false };
 
-    addWaist(window.robot, x, y, z);
-    addAbdomen(window.robot, x, y, z);
-    addTorso(window.robot, x, y, z);
+    addWaist(window.robot, 0, 0, 0);
+    addAbdomen(window.robot, 0, 0, 0);
+    addTorso(window.robot, 0, 0, 0);
     
-    //head.position.set(0, H_Ci/2 + H_Tronco + H_Ab, -W_Ca/2);
-    addHead(window.robot, x, y, z);
+    addHead(window.robot, 0, 0, 0);
     
     lArm.position.set((L_Tronco + L_Br) /2 , H_Ci/2 + H_Tronco + H_Ab, -(W_Tronco + W_Br)/2);
     rArm.position.set(-(L_Tronco + L_Br) /2 , H_Ci/2 + H_Tronco + H_Ab, -(W_Tronco + W_Br)/2);
 
-    addArm(lArm, x, y, z);
-    addArm(rArm, x, y, z);
+    addArm(lArm, 0, 0, 0);
+    addArm(rArm, 0, 0, 0);
     
     lLeg.position.set((L_Ci - L_Perna)/2, 0, (W_Ci - W_Perna)/2);
     rLeg.position.set(-(L_Ci - L_Perna)/2,0, (W_Ci - W_Perna)/2);
 
     
     
-    addThigh(lLeg, x, y, z);
-    addThigh(rLeg, x, y, z);
+    addThigh(lLeg, 0, 0, 0);
+    addThigh(rLeg, 0, 0, 0);
     
     
    

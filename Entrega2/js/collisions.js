@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { updateTrailerAABB } from "./update.js";
-import { W_Ci, W_Br, W_Trailer, W_Olho } from "./const.js";
+import { W_Ci, W_Br, W_Trailer, W_Olho, X_In, Y_In, Z_In } from "./const.js";
 
 // This function checks for collision between the truck and trailer
 export function checkCollisions(delta, pos) {
@@ -43,7 +43,7 @@ export function handleCollisions(delta) {
         window.trailer.position.add(window.displacement);
         window.elapsed += delta * window.animationSpeed;
     } else {
-        window.trailer.position.set(0, 0, -W_Ci/2 -W_Br -W_Trailer/2 - W_Olho); // guarantee trailer is in the right position
+        window.trailer.position.set(X_In, Y_In, Z_In -W_Ci/2 -W_Br -W_Trailer/2 - W_Olho); // guarantee trailer is in the right position
         window.trailer.userData.engaging = false;
         window.trailer.userData.engaged = true;
         window.elapsed = 0;

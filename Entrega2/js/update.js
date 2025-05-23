@@ -84,12 +84,12 @@ export function handleRotations(delta) {
         head.rotation.x = THREE.MathUtils.clamp(head.rotation.x + delta * 5, - Math.PI, 0);
     }
     if (displaceArmsIn) {
-        lArm.position.x = THREE.MathUtils.clamp(lArm.position.x - delta * 50, 40, lArm.position.x);
-        rArm.position.x = THREE.MathUtils.clamp(rArm.position.x + delta * 50, rArm.position.x, -40);
+        lArm.position.x = THREE.MathUtils.clamp(lArm.position.x - delta * 50, L_Tronco - L_Ab, lArm.position.x);
+        rArm.position.x = THREE.MathUtils.clamp(rArm.position.x + delta * 50, rArm.position.x, -(L_Tronco - L_Ab));
     }
     if (displaceArmsOut) {
-        lArm.position.x = THREE.MathUtils.clamp(lArm.position.x + delta * 50, lArm.position.x, 60);
-        rArm.position.x = THREE.MathUtils.clamp(rArm.position.x - delta * 50, -60, rArm.position.x);
+        lArm.position.x = THREE.MathUtils.clamp(lArm.position.x + delta * 50, lArm.position.x, L_Ab);
+        rArm.position.x = THREE.MathUtils.clamp(rArm.position.x - delta * 50, -L_Ab, rArm.position.x);
     }
     checkTruckMode();
 }
@@ -109,9 +109,8 @@ export function checkTruckMode() {
                             rLeg.rotation.x == Math.PI / 2 &&
                             lFeet.rotation.x == Math.PI / 2 &&
                             rFeet.rotation.x == Math.PI / 2 &&
-                            rArm.position.x == rArm.position.x &&
-                            lArm.position.x == lArm.position.x;
-    
+                            rArm.position.x == -(L_Tronco - L_Ab) &&
+                            lArm.position.x == L_Tronco - L_Ab
     if (!robot.userData.truck) window.trailer.userData.engaged = false;
 }
 
