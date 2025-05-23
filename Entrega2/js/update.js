@@ -1,6 +1,7 @@
 import * as THREE from "three";
-import { checkCollisions, handleCollisions, computeDisplacement } from "./collisions.js";
-import {L_Tronco, H_Tronco, W_Tronco, 
+import { verifyCollisions, processCollisions, calculateDisplacement } from "./collisions.js";
+import {
+    L_Tronco, H_Tronco, W_Tronco, 
     L_Ab, H_Ab, W_Ab,
     L_Ci, H_Ci, W_Ci,
     R_Roda, H_Roda,
@@ -14,106 +15,130 @@ import {L_Tronco, H_Tronco, W_Tronco,
     L_Br, H_Br, W_Br,
     R_Mao, H_Mao,
     R_Tu, H_Tu,
-    L_Trailer, W_Trailer, H_Trailer } from "./const.js";
+    L_Trailer, W_Trailer, H_Trailer
+} from "./robotConstants.js";
 
-////////////
-/* UPDATE */
-////////////
-export function update(){
-
+/**
+ * Main update function called every animation frame.
+ * Handles robot rotations, trailer movement, collision detection, and trailer engagement animation.
+ */
+export function update() {
     let delta = window.clock.getDelta();
-    
-    if (!window.trailer.userData.engaging) { // trailer is free to move around
-        handleRotations(delta);
+
+    // If the trailer is not currently engaging, allow movement and rotation
+    if (!window.trailer.userData.isEngaging) {
+        processRotations(delta);
         updateMovement();
 
-        var tentativePos = updateTruckPosition(delta);
+        // Calculate the tentative new position for the trailer
+        var tentativePos = calculateTrailerPosition(delta);
         var currentPos;
-        
-        if (robot.userData.truck) { // check collision (truck mode && trailer not engaged)
-            currentPos = checkCollisions(delta, tentativePos);
+
+        // If the robot is in truck mode, check for collision with the trailer
+        if (robot.userData.truck) {
+            currentPos = verifyCollisions(delta, tentativePos);
         } else {
             currentPos = tentativePos;
         }
+        // Update trailer position
         window.trailer.position.x = currentPos.x;
-        window.trailer.position.z = currentPos.y; // CORRIGIDO
+        window.trailer.position.z = currentPos.y; // Note: .y is used as z here due to Vector2
         updateTrailerAABB(window.trailer.position.x, window.trailer.position.z);
     } else {
-        handleCollisions(delta);
+        // If engaging, animate the trailer engagement
+        processCollisions(delta);
     }
 }
 
+/**
+ * Updates the movement vector based on pressed keys.
+ * Arrow keys control the direction and speed of the trailer.
+ */
 export function updateMovement() {
     window.movementVector.set(0, 0, 0);
 
-    if (window.keys['ArrowUp']) {
+    if (window.pressedKeys['ArrowUp']) {
         window.movementVector.x -= 100;
     }
-    if (window.keys['ArrowDown']) {
+    if (window.pressedKeys['ArrowDown']) {
         window.movementVector.x += 100;
     }
-    if (window.keys['ArrowLeft']) {
+    if (window.pressedKeys['ArrowLeft']) {
         window.movementVector.z += 100;
     }
-    if (window.keys['ArrowRight']) {
+    if (window.pressedKeys['ArrowRight']) {
         window.movementVector.z -= 100;
     }
 }
 
-export function handleRotations(delta) {
-    if (rotateFeetIn) {
-        rFeet.rotation.x = THREE.MathUtils.clamp(rFeet.rotation.x + delta * 5, 0, Math.PI/2 );
-        lFeet.rotation.x = THREE.MathUtils.clamp(lFeet.rotation.x + delta * 5, 0, Math.PI/2);
+/**
+ * Handles all robot part rotations and arm movements based on input flags.
+ * Uses clamping to ensure rotations stay within allowed limits.
+ */
+export function processRotations(delta) {
+    if (feetRotationIn) {
+        rightFeet.rotation.x = THREE.MathUtils.clamp(rightFeet.rotation.x + delta * 5, 0, Math.PI/2 );
+        leftFeet.rotation.x = THREE.MathUtils.clamp(leftFeet.rotation.x + delta * 5, 0, Math.PI/2);
     }
-    if (rotateFeetOut) {
-        rFeet.rotation.x = THREE.MathUtils.clamp(rFeet.rotation.x - delta * 5, 0, Math.PI/2);
-        lFeet.rotation.x = THREE.MathUtils.clamp(lFeet.rotation.x - delta * 5, 0, Math.PI/2);
+    if (feetRotationOut) {
+        rightFeet.rotation.x = THREE.MathUtils.clamp(rightFeet.rotation.x - delta * 5, 0, Math.PI/2);
+        leftFeet.rotation.x = THREE.MathUtils.clamp(leftFeet.rotation.x - delta * 5, 0, Math.PI/2);
     }
-    if (rotateLegIn) {
-        rLeg.rotation.x = THREE.MathUtils.clamp(rLeg.rotation.x + delta * 5, 0, Math.PI / 2);
-        lLeg.rotation.x = THREE.MathUtils.clamp(lLeg.rotation.x + delta * 5, 0, Math.PI / 2);
+    if (legRotationIn) {
+        rightLeg.rotation.x = THREE.MathUtils.clamp(rightLeg.rotation.x + delta * 5, 0, Math.PI / 2);
+        leftLeg.rotation.x = THREE.MathUtils.clamp(leftLeg.rotation.x + delta * 5, 0, Math.PI / 2);
     }
-    if (rotateLegOut) {
-        rLeg.rotation.x = THREE.MathUtils.clamp(rLeg.rotation.x - delta * 5, 0,  Math.PI / 2);
-        lLeg.rotation.x = THREE.MathUtils.clamp(lLeg.rotation.x - delta * 5, 0,  Math.PI / 2)
+    if (legRotationOut) {
+        rightLeg.rotation.x = THREE.MathUtils.clamp(rightLeg.rotation.x - delta * 5, 0,  Math.PI / 2);
+        leftLeg.rotation.x = THREE.MathUtils.clamp(leftLeg.rotation.x - delta * 5, 0,  Math.PI / 2)
     }
-    if (rotateHeadIn) {
+    if (headRotationIn) {
         head.rotation.x = THREE.MathUtils.clamp(head.rotation.x - delta * 5, - Math.PI, 0);
     }
-    if (rotateHeadOut) {
+    if (headRotationOut) {
         head.rotation.x = THREE.MathUtils.clamp(head.rotation.x + delta * 5, - Math.PI, 0);
     }
-    if (displaceArmsIn) {
-        lArm.position.x = THREE.MathUtils.clamp(lArm.position.x - delta * 50, L_Tronco - L_Ab, lArm.position.x);
-        rArm.position.x = THREE.MathUtils.clamp(rArm.position.x + delta * 50, rArm.position.x, -(L_Tronco - L_Ab));
+    if (moveArmsIn) {
+        leftArm.position.x = THREE.MathUtils.clamp(leftArm.position.x - delta * 50, L_Tronco - L_Ab, leftArm.position.x);
+        rightArm.position.x = THREE.MathUtils.clamp(rightArm.position.x + delta * 50, rightArm.position.x, -(L_Tronco - L_Ab));
     }
-    if (displaceArmsOut) {
-        lArm.position.x = THREE.MathUtils.clamp(lArm.position.x + delta * 50, lArm.position.x, L_Ab);
-        rArm.position.x = THREE.MathUtils.clamp(rArm.position.x - delta * 50, -L_Ab, rArm.position.x);
+    if (moveArmsOut) {
+        leftArm.position.x = THREE.MathUtils.clamp(leftArm.position.x + delta * 50, leftArm.position.x, L_Ab);
+        rightArm.position.x = THREE.MathUtils.clamp(rightArm.position.x - delta * 50, -L_Ab, rightArm.position.x);
     }
-    checkTruckMode();
+    // After all rotations, check if the robot is in truck mode
+    verifyTruckMode();
 }
 
-export function updateTruckPosition(delta) {
-
+/**
+ * Calculates the tentative new position for the trailer based on the movement vector and delta time.
+ * Returns a Vector2 with the new x and z positions.
+ */
+export function calculateTrailerPosition(delta) {
     const tentativeX = window.trailer.position.x + movementVector.x * delta;
     const tentativeZ = window.trailer.position.z + movementVector.z * delta;
-
     return new THREE.Vector2(tentativeX, tentativeZ);
 }
 
-export function checkTruckMode() {
-
+/**
+ * Verifies if the robot is in truck mode by checking the rotations and positions of all relevant parts.
+ * If not in truck mode, disengages the trailer.
+ */
+export function verifyTruckMode() {
     robot.userData.truck = head.rotation.x == -Math.PI &&
-                            lLeg.rotation.x ==  Math.PI / 2 &&
-                            rLeg.rotation.x == Math.PI / 2 &&
-                            lFeet.rotation.x == Math.PI / 2 &&
-                            rFeet.rotation.x == Math.PI / 2 &&
-                            rArm.position.x == -(L_Tronco - L_Ab) &&
-                            lArm.position.x == L_Tronco - L_Ab
-    if (!robot.userData.truck) window.trailer.userData.engaged = false;
+                            leftLeg.rotation.x ==  Math.PI / 2 &&
+                            rightLeg.rotation.x == Math.PI / 2 &&
+                            leftFeet.rotation.x == Math.PI / 2 &&
+                            rightFeet.rotation.x == Math.PI / 2 &&
+                            rightArm.position.x == -(L_Tronco - L_Ab) &&
+                            leftArm.position.x == L_Tronco - L_Ab;
+    if (!robot.userData.truck) window.trailer.userData.isEngaged = false;
 }
 
+/**
+ * Updates the trailer's Axis-Aligned Bounding Box (AABB) for collision detection.
+ * The bounding box is recalculated based on the trailer's current position.
+ */
 export function updateTrailerAABB(x, z) {
     window.minTrailerAABB = new THREE.Vector3(
         x - L_Trailer / 2,

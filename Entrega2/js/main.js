@@ -1,36 +1,30 @@
 import * as THREE from "three";
-import { createMaterials, materials } from "./materials.js";
+import { createMaterials, materialsMap } from "./materials.js";
 import { createScene } from "./scene.js";
-import { createCameras, cameras, camera } from "./camera.js";
-import { update, handleRotations, updateTruckPosition, updateTrailerAABB, checkTruckMode } from "./update.js";
+import { createCameras, cameraList } from "./camera.js";
+import { update } from "./update.js";
 import { onKeyDown, onKeyUp } from "./input.js";
-import {L_Tronco, H_Tronco, W_Tronco, 
-    L_Ab, H_Ab, W_Ab,
-    L_Ci, H_Ci, W_Ci,
-    R_Roda, H_Roda,
-    L_Ca, H_Ca, W_Ca,
-    L_Olho, H_Olho, W_Olho,
-    R_Ant, H_Ant,
-    L_Coxa, H_Coxa, W_Coxa,
-    L_Perna, H_Perna, W_Perna,
-    L_Pe, H_Pe, W_Pe,
-    L_An, H_An, W_An,
-    L_Br, H_Br, W_Br,
-    R_Mao, H_Mao,
-    R_Tu, H_Tu,
-    L_Trailer,
-    H_Trailer,
-    H_LowerT,
-    W_Trailer, X_In, Y_In, Z_In } from "./const.js";
+import { H_Tronco, H_Ab, L_Ci, H_Ci, W_Ci, W_Olho, H_Coxa, H_Perna, H_Pe, W_Pe, W_Br,
+         L_Trailer, H_Trailer, H_LowerT, W_Trailer, X_In, Y_In, Z_In } from "./robotConstants.js";
 
-const keys = {};
+// Stores the state of pressed keys for movement and actions
+const pressedKeys = {};
+// Main renderer and clock for animation timing
 let renderer, clock = new THREE.Clock();
+// Vector for movement direction and magnitude
 const movementVector = new THREE.Vector3(0, 0, 0);
 
+/**
+ * Renders the current scene from the active camera.
+ */
 function render() {
-    renderer.render(window.scene, window.camera);
+    renderer.render(window.scene, window.currentCamera);
 }
 
+/**
+ * Initializes the renderer, scene, cameras, and event listeners.
+ * Also sets up global state variables and bounding boxes.
+ */
 function init() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -38,57 +32,70 @@ function init() {
 
     clock.start();
 
+    // Initialize materials, scene, and cameras
     createMaterials();
     createScene(X_In, Y_In, Z_In);
     createCameras();
 
+    // Register input and resize event listeners
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
 
-    window.cameras = cameras;
-    window.keys = keys;
-    window.materials = materials;
-    window.trailer = trailer; // and any other globals you use in input.js
+    // Expose important objects and state to the global window for access in other modules
+    window.cameraList = cameraList;
+    window.pressedKeys = pressedKeys;
+    window.materialsMap = materialsMap;
+    window.trailer = trailer;
 
-    window.rotateHeadIn = false;
-    window.rotateHeadOut = false;
-    window.rotateLegIn = false;
-    window.rotateLegOut = false;
-    window.rotateFeetIn = false;
-    window.rotateFeetOut = false;
-    window.displaceArmsIn = false;
-    window.displaceArmsOut = false;
+    // Initialize robot transformation flags
+    window.headRotationIn = false;
+    window.headRotationOut = false;
+    window.legRotationIn = false;
+    window.legRotationOut = false;
+    window.feetRotationIn = false;
+    window.feetRotationOut = false;
+    window.moveArmsIn = false;
+    window.moveArmsOut = false;
 
+    // Expose clock and movement vector globally
     window.clock = clock;
-
     window.movementVector = movementVector;
     
-    window.minTruckAABB = new THREE.Vector3(X_In -L_Ci/2, Y_In -H_Ci / 2, Z_In - H_Coxa - H_Perna - W_Pe + H_Pe / 2);
-    window.maxTruckAABB = new THREE.Vector3(X_In + L_Ci/2, Y_In + H_Ci / 2 + H_Ab + H_Tronco, Z_In + W_Ci / 2);
-    window.minTrailerAABB = new THREE.Vector3(X_In - L_Trailer/2, Y_In -H_Trailer/2 - H_LowerT, Z_In -W_Trailer/2);
-    window.maxTrailerAABB = new THREE.Vector3(X_In + L_Trailer/2, Y_In + H_Trailer/2 , Z_In + W_Trailer/2);
+    // Set up bounding boxes for collision detection
+    window.minTruckAABB = new THREE.Vector3(X_In - L_Ci / 2, Y_In - H_Ci / 2, Z_In - H_Coxa - H_Perna - W_Pe + H_Pe / 2);
+    window.maxTruckAABB = new THREE.Vector3(X_In + L_Ci / 2, Y_In + H_Ci / 2 + H_Ab + H_Tronco, Z_In + W_Ci / 2);
+    window.minTrailerAABB = new THREE.Vector3(X_In - L_Trailer / 2, Y_In - H_Trailer / 2 - H_LowerT, Z_In - W_Trailer / 2);
+    window.maxTrailerAABB = new THREE.Vector3(X_In + L_Trailer / 2, Y_In + H_Trailer / 2, Z_In + W_Trailer / 2);
 
+    // Animation and engagement state for trailer
     window.elapsed = 0;
     window.duration = 5;
     window.animationSpeed = 2;
     window.displacement = new THREE.Vector3(0, 0, 0);
-    window.targetPos = new THREE.Vector3(X_In, Y_In, Z_In -W_Ci/2 -W_Br -W_Trailer/2 - W_Olho);
+    window.targetPos = new THREE.Vector3(X_In, Y_In, Z_In - W_Ci / 2 - W_Br - W_Trailer / 2 - W_Olho);
 }
 
+/**
+ * Main animation loop: updates state and renders the scene.
+ */
 function animate() {
     update();
     render();
     requestAnimationFrame(animate);
 }
 
+/**
+ * Handles window resize events to keep the renderer and camera aspect ratio correct.
+ */
 function onResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     if (window.innerHeight > 0 && window.innerWidth > 0) {
-        window.camera.aspect = window.innerWidth / window.innerHeight;
-        window.camera.updateProjectionMatrix();
+        window.currentCamera.aspect = window.innerWidth / window.innerHeight;
+        window.currentCamera.updateProjectionMatrix();
     }
 }
 
+// Initialize and start the animation loop
 init();
 animate();

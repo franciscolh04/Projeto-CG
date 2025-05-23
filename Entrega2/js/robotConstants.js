@@ -1,5 +1,5 @@
-const X_In = 30;
-const Y_In = 50;
+const X_In = 0;
+const Y_In = 0;
 const Z_In = 0;
 
 const L_Tronco = 100;
