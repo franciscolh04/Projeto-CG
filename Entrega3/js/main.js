@@ -43,6 +43,13 @@ const treeMaterials = {
     darkgreen: new THREE.MeshPhongMaterial({ color: 0x234d20 })
 };
 
+// UFO variables
+var ufo, ufoPointLights = [], ufoSpotLight;
+var ufoSpeed = 10;
+var ufoRotationSpeed = 1;
+var pointLightsOn = true;
+var spotLightOn = true;
+
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -140,7 +147,7 @@ function createMaterials() {
     'use strict';
     // Load heightmap texture
     const loader = new THREE.TextureLoader();
-    const texture = loader.load('textures/heightmap1.png');
+    const texture = loader.load('textures/heightmap.png');
     
     // Gera texturas procedurais
     const floralTexture = gerarTexturaCampoFloral();
@@ -378,12 +385,118 @@ function scatterCorkTrees(numTrees) {
     }
 }
 
+// UFO creation
+function createUFO(x, y, z) {
+    'use strict';
+    ufo = new THREE.Object3D();
+    ufo.position.set(x, y, z);
+
+    // Main body (flattened sphere)
+    const bodyGeometry = new THREE.SphereGeometry(3, 32, 32);
+    bodyGeometry.scale(1, 0.3, 1); // Flatten the sphere
+    const bodyMaterial = new THREE.MeshPhongMaterial({ 
+        color: 0x444444, 
+        specular: 0x999999, 
+        shininess: 30 
+    });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    ufo.add(body);
+
+    // Cockpit (spherical cap)
+    const cockpitGeometry = new THREE.SphereGeometry(1.5, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+    const cockpitMaterial = new THREE.MeshPhongMaterial({ 
+        color: 0x33aaff, 
+        transparent: true, 
+        opacity: 0.7,
+        specular: 0xffffff,
+        shininess: 100
+    });
+    const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
+    cockpit.position.y = 0.6;
+    ufo.add(cockpit);
+
+    // Bottom lights arrangement
+    const bottomGroup = new THREE.Object3D();
+    const radius = 2.5;
+    const lightCount = 16;
+
+    // Ajuste: eleva o grupo das luzes e cilindro para ficarem ligeiramente sobrepostos com a esfera achatada
+    bottomGroup.position.y = 0.15; // valor ajustado para sobreposição suave
+
+    // Small spheres and point lights
+    for (let i = 0; i < lightCount; i++) {
+        const angle = (i / lightCount) * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+
+        // Small sphere
+        const lightSphereGeo = new THREE.SphereGeometry(0.3, 16, 16);
+        const lightSphereMat = new THREE.MeshPhongMaterial({ 
+            color: 0xffff00,
+            emissive: 0xffff00,
+            emissiveIntensity: 0.5
+        });
+        const lightSphere = new THREE.Mesh(lightSphereGeo, lightSphereMat);
+        lightSphere.position.set(x, -0.6, z); // subiu de -1 para -0.6
+        bottomGroup.add(lightSphere);
+
+        // Point light
+        const pointLight = new THREE.PointLight(0xffff00, 1, 10);
+        pointLight.position.set(x, -1.1, z); // subiu de -1.5 para -1.1
+        bottomGroup.add(pointLight);
+        ufoPointLights.push(pointLight);
+    }
+
+    // Central cylinder
+    const cylinderGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32);
+    cylinderGeo.scale(1, 4, 1); // Flatten it
+    const cylinderMat = new THREE.MeshPhongMaterial({ color: 0x888888 });
+    const cylinder = new THREE.Mesh(cylinderGeo, cylinderMat);
+    cylinder.position.y = -0.8; // subiu de -1.2 para -0.8
+    bottomGroup.add(cylinder);
+
+    // Spotlight
+    ufoSpotLight = new THREE.SpotLight(0xffffff, 2, 30, Math.PI/4, 0.5);
+    ufoSpotLight.position.set(0, -1.1, 0); // subiu de -1.5 para -1.1
+    ufoSpotLight.target.position.set(0, -10, 0);
+    ufoSpotLight.castShadow = true;
+    bottomGroup.add(ufoSpotLight);
+    bottomGroup.add(ufoSpotLight.target);
+
+    ufo.add(bottomGroup);
+    ufo.scale.set(3, 3, 3); // UFO maior
+
+    scene.add(ufo);
+}
+
 ////////////
 /* UPDATE */
 ////////////
 function update(delta) {
     'use strict';
-    // Animation updates can go here
+    // Update UFO rotation
+    if (ufo) {
+        ufo.rotation.y += ufoRotationSpeed * delta;
+        
+        // Update UFO position based on key states
+        const moveSpeed = ufoSpeed * delta;
+        if (keys[37] || keys[65]) { // Left arrow or A
+            ufo.position.x -= moveSpeed;
+        }
+        if (keys[39] || keys[68]) { // Right arrow or D
+            ufo.position.x += moveSpeed;
+        }
+        if (keys[38] || keys[87]) { // Up arrow or W
+            ufo.position.z -= moveSpeed;
+        }
+        if (keys[40] || keys[83]) { // Down arrow or S
+            ufo.position.z += moveSpeed;
+        }
+        
+        // Keep UFO within bounds (optional)
+        ufo.position.x = Math.max(-80, Math.min(80, ufo.position.x));
+        ufo.position.z = Math.max(-80, Math.min(80, ufo.position.z));
+    }
 }
 
 /////////////
@@ -418,7 +531,11 @@ function init() {
     // Add cork trees to the scene
     scatterCorkTrees(12); // Creates 12 trees with random variations
 
+    // Create UFO
+    createUFO(0, 35, 0);
+
     window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
 }
 
@@ -448,6 +565,8 @@ function onResize() {
 ///////////////////////
 function onKeyDown(e) {
     'use strict';
+    keys[e.keyCode] = true;
+    
     switch (e.keyCode) {
         case 49: // 1 - Campo floral no terreno
             materials.get("terrain").map = gerarTexturaCampoFloral();
@@ -465,7 +584,24 @@ function onKeyDown(e) {
                 moon.material.emissiveIntensity = lightOn ? 1.2 : 0.2;
             }
             break;
+        case 80: // P
+        case 112: // p - Toggle point lights
+            pointLightsOn = !pointLightsOn;
+            ufoPointLights.forEach(light => {
+                light.visible = pointLightsOn;
+            });
+            break;
+        case 83: // S
+        case 115: // s - Toggle spotlight
+            spotLightOn = !spotLightOn;
+            if (ufoSpotLight) ufoSpotLight.visible = spotLightOn;
+            break;
     }
+}
+
+function onKeyUp(e) {
+    'use strict';
+    keys[e.keyCode] = false;
 }
 
 function gerarTexturaCampoFloral() {
