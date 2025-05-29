@@ -18,6 +18,31 @@ let globalLight; // luz direcional global
 let moon;        // referência à lua
 let lightOn = true;
 
+// Tree parameters
+const treeParams = {
+    lowTrunkBotR: 0.7,
+    lowTrunkTopR: 0.6,
+    lowTrunkH: 8,
+    uppTrunkBotR: 0.6,
+    uppTrunkTopR: 0.5,
+    uppTrunkH: 4,
+    trunkCrownR: 4,
+    lowBranchBotR: 0.4,
+    lowBranchTopR: 0.35,
+    lowBranchH: 5,
+    uppBranchBotR: 0.35,
+    uppBranchTopR: 0.3,
+    uppBranchH: 3,
+    branchCrownR: 3
+};
+
+// Tree materials
+const treeMaterials = {
+    darkorange: new THREE.MeshPhongMaterial({ color: 0xcc7722 }),
+    bistre: new THREE.MeshPhongMaterial({ color: 0x3d2b1f }),
+    darkgreen: new THREE.MeshPhongMaterial({ color: 0x234d20 })
+};
+
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -240,91 +265,116 @@ function createMoon(x, y, z) {
     return moon;
 }
 
-/**
- * Creates the main trunk of the cork oak (inclined cylinder)
- */
-function addMainTrunk(obj, height, radius, inclination, color) {
-    const geometry = new THREE.CylinderGeometry(radius, radius * 1.1, height, 24);
-    const material = new THREE.MeshPhongMaterial({ color: color });
-    const trunk = new THREE.Mesh(geometry, material);
-    trunk.position.y = height / 2;
-    trunk.rotation.z = inclination;
-    obj.add(trunk);
-    return trunk;
-}
+function createCorkTree(x, y, z, s) {
+    'use strict';
+    const d = treeParams;
+    const m = treeMaterials;
+    const rAxes = {
+        x: new THREE.Vector3(1, 0, 0),
+        y: new THREE.Vector3(0, 1, 0),
+        z: new THREE.Vector3(0, 0, 1)
+    };
 
-/**
- * Creates a secondary branch (cylinder inclined in opposite direction)
- */
-function addSecondaryBranch(obj, height, radius, inclination, color) {
-    const geometry = new THREE.CylinderGeometry(radius * 0.6, radius * 0.7, height, 20);
-    const material = new THREE.MeshPhongMaterial({ color: color });
-    const branch = new THREE.Mesh(geometry, material);
-    branch.position.y = height * 0.7;
-    branch.position.x = height * 0.25;
-    branch.rotation.z = inclination;
-    obj.add(branch);
-    return branch;
-}
+    // Trunk 3D (parent: scene; children: lower trunk, upper trunk, trunk crown 3D, branch 3D)
+    const trunk3D = new THREE.Object3D();
+    trunk3D.position.set(x, y, z);
+    scene.add(trunk3D);
 
-/**
- * Creates the tree canopy (1 to 3 ellipsoids)
- */
-function addCanopy(obj, numEllipsoids, size, color) {
-    for (let i = 0; i < numEllipsoids; i++) {
-        const geometry = new THREE.SphereGeometry(size, 24, 16);
-        geometry.scale(1.2 + Math.random()*0.3, 0.7 + Math.random()*0.2, 1.2 + Math.random()*0.3);
-        const material = new THREE.MeshPhongMaterial({ color: color });
-        const canopy = new THREE.Mesh(geometry, material);
-        canopy.position.y = size * (1.2 + i * 0.5);
-        canopy.position.x = (i - 1) * size * 0.7 + (Math.random()-0.5)*size*0.2;
-        canopy.position.z = (Math.random()-0.5)*size*0.3;
-        obj.add(canopy);
+    // Lower trunk
+    const lowTrunkGeo = new THREE.CylinderGeometry(
+        s*d.lowTrunkTopR, 
+        s*d.lowTrunkBotR, 
+        s*d.lowTrunkH, 
+        16
+    );
+    const lowTrunk = new THREE.Mesh(lowTrunkGeo, m.darkorange);
+    lowTrunk.position.y = s*d.lowTrunkH/2;
+    trunk3D.add(lowTrunk);
+
+    // Upper trunk
+    const uppTrunkGeo = new THREE.CylinderGeometry(
+        s*d.uppTrunkTopR, 
+        s*d.uppTrunkBotR, 
+        s*d.uppTrunkH, 
+        12
+    );
+    const uppTrunk = new THREE.Mesh(uppTrunkGeo, m.bistre);
+    uppTrunk.position.y = s*(d.lowTrunkH + d.uppTrunkH/2);
+    trunk3D.add(uppTrunk);
+
+    // Trunk Crown 3D (parent: trunk 3D; children: trunk crown)
+    const trunkCrown3D = new THREE.Object3D();
+    trunkCrown3D.position.set(0, s*(d.lowTrunkH + d.uppTrunkH), 0);
+    trunk3D.add(trunkCrown3D);
+
+    // Trunk crown (ellipsoid)
+    const trunkCrownGeo = new THREE.SphereGeometry(s*d.trunkCrownR, 16, 16);
+    trunkCrownGeo.scale(1, 0.5, 1); // Make it ellipsoid
+    const trunkCrown = new THREE.Mesh(trunkCrownGeo, m.darkgreen);
+    trunkCrown.position.y = s*d.trunkCrownR/4;
+    trunkCrown3D.add(trunkCrown);
+
+    // Branch 3D (parent: trunk 3D, children: lower branch, upper branch, branch crown 3D)
+    const branch3D = new THREE.Object3D();
+    branch3D.position.set(0, 3*s*d.lowTrunkH/4, 0);
+    trunk3D.add(branch3D);
+
+    // Lower branch
+    const lowBranchGeo = new THREE.CylinderGeometry(
+        s*d.lowBranchTopR, 
+        s*d.lowBranchBotR, 
+        s*d.lowBranchH, 
+        12
+    );
+    const lowBranch = new THREE.Mesh(lowBranchGeo, m.darkorange);
+    lowBranch.position.y = s*d.lowBranchH/2;
+    branch3D.add(lowBranch);
+
+    // Upper branch
+    const uppBranchGeo = new THREE.CylinderGeometry(
+        s*d.uppBranchTopR, 
+        s*d.uppBranchBotR, 
+        s*d.uppBranchH, 
+        8
+    );
+    const uppBranch = new THREE.Mesh(uppBranchGeo, m.bistre);
+    uppBranch.position.y = s*(d.lowBranchH + d.uppBranchH/2);
+    branch3D.add(uppBranch);
+
+    // Branch Crown 3D (parent: branch 3D; children: branch crown)
+    const branchCrown3D = new THREE.Object3D();
+    branchCrown3D.position.set(0, s*(d.lowBranchH + d.uppBranchH), 0);
+    branch3D.add(branchCrown3D);
+
+    // Branch crown (ellipsoid)
+    const branchCrownGeo = new THREE.SphereGeometry(s*d.branchCrownR, 12, 12);
+    branchCrownGeo.scale(1, 0.5, 1); // Make it ellipsoid
+    const branchCrown = new THREE.Mesh(branchCrownGeo, m.darkgreen);
+    branchCrown.position.y = s*d.branchCrownR/4;
+    branchCrown3D.add(branchCrown);
+
+    // Random rotations
+    trunk3D.rotateOnWorldAxis(rAxes.y, getRandomAngle(0, 2*Math.PI));
+    trunk3D.rotateOnWorldAxis(rAxes.x, getRandomAngle(-Math.PI/16, Math.PI/16));
+    trunk3D.rotateOnWorldAxis(rAxes.z, getRandomAngle(-Math.PI/8, 0));
+    branch3D.rotateOnWorldAxis(rAxes.x, getRandomAngle(-Math.PI/8, Math.PI/8));
+    branch3D.rotateOnWorldAxis(rAxes.z, getRandomAngle(Math.PI/6, Math.PI/3));
+    trunkCrown3D.rotateOnWorldAxis(rAxes.x, getRandomAngle(-Math.PI/16, Math.PI/16));
+    trunkCrown3D.rotateOnWorldAxis(rAxes.z, getRandomAngle(-Math.PI/16, Math.PI/16));
+    branchCrown3D.rotateOnWorldAxis(rAxes.x, getRandomAngle(-Math.PI/16, Math.PI/16));
+    branchCrown3D.rotateOnWorldAxis(rAxes.z, getRandomAngle(-Math.PI/16, Math.PI/16));
+
+    function getRandomAngle(min, max) {
+        return Math.random() * (max - min) + min;
     }
 }
 
-/**
- * Creates a cork oak tree instance
- */
-function createCorkOak(x, z, scale, trunkInclination, branchInclination, numEllipsoids) {
-    const tree = new THREE.Object3D();
-    
-    // Colors
-    const trunkColor = 0xcc7722; // orange-brown
-    const canopyColor = 0x234d20; // dark green
-
-    // Main trunk (slightly tapered)
-    const trunkHeight = 8 * scale;
-    const trunkRadius = 0.7 * scale;
-    addMainTrunk(tree, trunkHeight, trunkRadius, trunkInclination, trunkColor);
-
-    // Secondary branch (opposite inclination)
-    const branchHeight = 4.5 * scale;
-    const branchRadius = 0.35 * scale;
-    addSecondaryBranch(tree, branchHeight, branchRadius, branchInclination, trunkColor);
-
-    // Canopy (1-3 ellipsoids)
-    addCanopy(tree, numEllipsoids, 2.5 * scale, canopyColor);
-
-    // Random orientation and position
-    tree.rotation.y = Math.random() * Math.PI * 2;
-    tree.position.set(x, 0, z);
-
-    scene.add(tree);
-}
-
-/**
- * Scatters multiple cork oaks across the terrain
- */
-function scatterCorkOaks(numTrees) {
+function scatterCorkTrees(numTrees) {
     for (let i = 0; i < numTrees; i++) {
         const x = (Math.random() - 0.5) * 160;
         const z = (Math.random() - 0.5) * 160;
         const scale = 0.8 + Math.random() * 0.7;
-        const trunkInclination = (Math.random() - 0.5) * 0.35; // up to ~20 degrees
-        const branchInclination = -trunkInclination + (Math.random()-0.5)*0.15;
-        const numEllipsoids = 1 + Math.floor(Math.random() * 3);
-        createCorkOak(x, z, scale, trunkInclination, branchInclination, numEllipsoids);
+        createCorkTree(x, 0, z, scale);
     }
 }
 
@@ -365,8 +415,8 @@ function init() {
     scene.add(globalLight);
     scene.add(globalLight.target);
 
-    // Add cork oak trees to the scene
-    scatterCorkOaks(12); // Creates 12 trees with random variations
+    // Add cork trees to the scene
+    scatterCorkTrees(12); // Creates 12 trees with random variations
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", onResize);
