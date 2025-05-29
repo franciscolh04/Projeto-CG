@@ -320,6 +320,9 @@ function onKeyDown(e) {
         case 100: // d
             lightOn = !lightOn;
             if (globalLight) globalLight.visible = lightOn;
+            if (moon) {
+                moon.material.emissiveIntensity = lightOn ? 1.2 : 0.2;
+            }
             break;
     }
 }
