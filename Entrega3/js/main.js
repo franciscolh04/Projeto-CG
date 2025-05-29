@@ -240,6 +240,94 @@ function createMoon(x, y, z) {
     return moon;
 }
 
+/**
+ * Creates the main trunk of the cork oak (inclined cylinder)
+ */
+function addMainTrunk(obj, height, radius, inclination, color) {
+    const geometry = new THREE.CylinderGeometry(radius, radius * 1.1, height, 24);
+    const material = new THREE.MeshPhongMaterial({ color: color });
+    const trunk = new THREE.Mesh(geometry, material);
+    trunk.position.y = height / 2;
+    trunk.rotation.z = inclination;
+    obj.add(trunk);
+    return trunk;
+}
+
+/**
+ * Creates a secondary branch (cylinder inclined in opposite direction)
+ */
+function addSecondaryBranch(obj, height, radius, inclination, color) {
+    const geometry = new THREE.CylinderGeometry(radius * 0.6, radius * 0.7, height, 20);
+    const material = new THREE.MeshPhongMaterial({ color: color });
+    const branch = new THREE.Mesh(geometry, material);
+    branch.position.y = height * 0.7;
+    branch.position.x = height * 0.25;
+    branch.rotation.z = inclination;
+    obj.add(branch);
+    return branch;
+}
+
+/**
+ * Creates the tree canopy (1 to 3 ellipsoids)
+ */
+function addCanopy(obj, numEllipsoids, size, color) {
+    for (let i = 0; i < numEllipsoids; i++) {
+        const geometry = new THREE.SphereGeometry(size, 24, 16);
+        geometry.scale(1.2 + Math.random()*0.3, 0.7 + Math.random()*0.2, 1.2 + Math.random()*0.3);
+        const material = new THREE.MeshPhongMaterial({ color: color });
+        const canopy = new THREE.Mesh(geometry, material);
+        canopy.position.y = size * (1.2 + i * 0.5);
+        canopy.position.x = (i - 1) * size * 0.7 + (Math.random()-0.5)*size*0.2;
+        canopy.position.z = (Math.random()-0.5)*size*0.3;
+        obj.add(canopy);
+    }
+}
+
+/**
+ * Creates a cork oak tree instance
+ */
+function createCorkOak(x, z, scale, trunkInclination, branchInclination, numEllipsoids) {
+    const tree = new THREE.Object3D();
+    
+    // Colors
+    const trunkColor = 0xcc7722; // orange-brown
+    const canopyColor = 0x234d20; // dark green
+
+    // Main trunk (slightly tapered)
+    const trunkHeight = 8 * scale;
+    const trunkRadius = 0.7 * scale;
+    addMainTrunk(tree, trunkHeight, trunkRadius, trunkInclination, trunkColor);
+
+    // Secondary branch (opposite inclination)
+    const branchHeight = 4.5 * scale;
+    const branchRadius = 0.35 * scale;
+    addSecondaryBranch(tree, branchHeight, branchRadius, branchInclination, trunkColor);
+
+    // Canopy (1-3 ellipsoids)
+    addCanopy(tree, numEllipsoids, 2.5 * scale, canopyColor);
+
+    // Random orientation and position
+    tree.rotation.y = Math.random() * Math.PI * 2;
+    tree.position.set(x, 0, z);
+
+    scene.add(tree);
+}
+
+/**
+ * Scatters multiple cork oaks across the terrain
+ */
+function scatterCorkOaks(numTrees) {
+    for (let i = 0; i < numTrees; i++) {
+        const x = (Math.random() - 0.5) * 160;
+        const z = (Math.random() - 0.5) * 160;
+        const scale = 0.8 + Math.random() * 0.7;
+        const trunkInclination = (Math.random() - 0.5) * 0.35; // up to ~20 degrees
+        const branchInclination = -trunkInclination + (Math.random()-0.5)*0.15;
+        const numEllipsoids = 1 + Math.floor(Math.random() * 3);
+        createCorkOak(x, z, scale, trunkInclination, branchInclination, numEllipsoids);
+    }
+}
+
 ////////////
 /* UPDATE */
 ////////////
@@ -276,6 +364,9 @@ function init() {
     globalLight.target.position.set(0, 0, 0);
     scene.add(globalLight);
     scene.add(globalLight.target);
+
+    // Add cork oak trees to the scene
+    scatterCorkOaks(12); // Creates 12 trees with random variations
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", onResize);
