@@ -1,11 +1,10 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
 
-var cameras = [], camera, scene, bufferSceneTerrain, bufferTextureTerrain, bufferSceneSky, bufferTextureSky, renderer, controls;
+var cameras = [], camera, scene, bufferSceneTerrain, bufferTextureTerrain, bufferSceneSky, bufferTextureSky, renderer;
 var geometry, mesh;
 var skydome, terrain;
 
@@ -84,7 +83,7 @@ function createCameras() {
     'use strict';
     const positions = [
         [0, 0, -50],  // Orthographic camera for texture generation
-        [35, 25, 35]   // Perspective camera for main scene
+        [70, 35, 50]   // Perspective camera for main scene (fixed aerial view)
     ];
 
     for (let i = 0; i < 2; i++) {
@@ -106,11 +105,6 @@ function createCameras() {
         cameras.push(camera);
     }
     camera = cameras[1];
-    
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.maxDistance = 50;
-    controls.target.set(0, 0, 0);
-    controls.update();
 }
 
 ////////////////////////
@@ -294,7 +288,6 @@ function animate() {
     'use strict';
     delta = clock.getDelta();
     update(delta);
-    controls.update();
     render();
     requestAnimationFrame(animate);
 }
