@@ -50,6 +50,14 @@ var ufoRotationSpeed = 1;
 var pointLightsOn = true;
 var spotLightOn = true;
 
+// UFO movement state (booleans for each arrow key)
+let ufoMove = {
+    left: false,
+    right: false,
+    up: false,
+    down: false
+};
+
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -443,14 +451,19 @@ function createUFO(x, y, z) {
         // Point light
         const pointLight = new THREE.PointLight(0xffff00, 1, 10);
         pointLight.position.set(x, -1.1, z); // subiu de -1.5 para -1.1
+        pointLight.castShadow = true;
         bottomGroup.add(pointLight);
         ufoPointLights.push(pointLight);
     }
 
-    // Central cylinder
+    // Central cylinder (agora amarelo para destacar a luz spotlight)
     const cylinderGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32);
     cylinderGeo.scale(1, 4, 1); // Flatten it
-    const cylinderMat = new THREE.MeshPhongMaterial({ color: 0x888888 });
+    const cylinderMat = new THREE.MeshPhongMaterial({ 
+        color: 0xffff00, // amarelo
+        emissive: 0xffff00,
+        emissiveIntensity: 0.7
+    });
     const cylinder = new THREE.Mesh(cylinderGeo, cylinderMat);
     cylinder.position.y = -0.8; // subiu de -1.2 para -0.8
     bottomGroup.add(cylinder);
@@ -466,6 +479,12 @@ function createUFO(x, y, z) {
     ufo.add(bottomGroup);
     ufo.scale.set(3, 3, 3); // UFO maior
 
+    // Initialize light states
+    ufoPointLights.forEach(light => {
+        light.visible = pointLightsOn;
+    });
+    ufoSpotLight.visible = spotLightOn;
+
     scene.add(ufo);
 }
 
@@ -477,22 +496,22 @@ function update(delta) {
     // Update UFO rotation
     if (ufo) {
         ufo.rotation.y += ufoRotationSpeed * delta;
-        
-        // Update UFO position based on key states
+
+        // UFO movement using booleans for smooth movement (like trailer in Entrega2)
         const moveSpeed = ufoSpeed * delta;
-        if (keys[37] || keys[65]) { // Left arrow or A
+        if (ufoMove.left) {
             ufo.position.x -= moveSpeed;
         }
-        if (keys[39] || keys[68]) { // Right arrow or D
+        if (ufoMove.right) {
             ufo.position.x += moveSpeed;
         }
-        if (keys[38] || keys[87]) { // Up arrow or W
+        if (ufoMove.up) {
             ufo.position.z -= moveSpeed;
         }
-        if (keys[40] || keys[83]) { // Down arrow or S
+        if (ufoMove.down) {
             ufo.position.z += moveSpeed;
         }
-        
+
         // Keep UFO within bounds (optional)
         ufo.position.x = Math.max(-80, Math.min(80, ufo.position.x));
         ufo.position.z = Math.max(-80, Math.min(80, ufo.position.z));
@@ -566,8 +585,20 @@ function onResize() {
 function onKeyDown(e) {
     'use strict';
     keys[e.keyCode] = true;
-    
+
     switch (e.keyCode) {
+        case 37: // Left arrow
+            ufoMove.left = true;
+            break;
+        case 39: // Right arrow
+            ufoMove.right = true;
+            break;
+        case 38: // Up arrow
+            ufoMove.up = true;
+            break;
+        case 40: // Down arrow
+            ufoMove.down = true;
+            break;
         case 49: // 1 - Campo floral no terreno
             materials.get("terrain").map = gerarTexturaCampoFloral();
             materials.get("terrain").needsUpdate = true;
@@ -587,14 +618,20 @@ function onKeyDown(e) {
         case 80: // P
         case 112: // p - Toggle point lights
             pointLightsOn = !pointLightsOn;
+            console.log('Toggling point lights:', pointLightsOn);
             ufoPointLights.forEach(light => {
                 light.visible = pointLightsOn;
+                light.intensity = pointLightsOn ? 1 : 0;
             });
             break;
         case 83: // S
         case 115: // s - Toggle spotlight
             spotLightOn = !spotLightOn;
-            if (ufoSpotLight) ufoSpotLight.visible = spotLightOn;
+            console.log('Toggling spotlight:', spotLightOn);
+            if (ufoSpotLight) {
+                ufoSpotLight.visible = spotLightOn;
+                ufoSpotLight.intensity = spotLightOn ? 2 : 0;
+            }
             break;
     }
 }
@@ -602,6 +639,21 @@ function onKeyDown(e) {
 function onKeyUp(e) {
     'use strict';
     keys[e.keyCode] = false;
+
+    switch (e.keyCode) {
+        case 37: // Left arrow
+            ufoMove.left = false;
+            break;
+        case 39: // Right arrow
+            ufoMove.right = false;
+            break;
+        case 38: // Up arrow
+            ufoMove.up = false;
+            break;
+        case 40: // Down arrow
+            ufoMove.down = false;
+            break;
+    }
 }
 
 function gerarTexturaCampoFloral() {
