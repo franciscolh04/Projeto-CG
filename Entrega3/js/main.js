@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createHouse } from './casa.js';
+import { VRButton } from 'three/addons/webxr/VRButton.js';
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -58,6 +59,9 @@ let ufoMove = {
     up: false,
     down: false
 };
+
+// Fixed camera for VR
+let fixedCamera, usingFixedCamera = false, previousCamera;
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -152,6 +156,11 @@ function createCameras() {
         cameras.push(camera);
     }
     camera = cameras[1];
+
+    // Fixed camera for VR
+    fixedCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+    fixedCamera.position.set(120, 80, 120);
+    fixedCamera.lookAt(0, 0, 0);
 }
 
 ////////////////////////
@@ -602,6 +611,10 @@ function init() {
     // Create UFO
     createUFO(0, 35, 0);
 
+    // Enable VR
+    renderer.xr.enabled = true;
+    document.body.appendChild(VRButton.createButton(renderer));
+
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
@@ -612,6 +625,9 @@ function init() {
 /////////////////////
 function animate() {
     'use strict';
+    if (!renderer.xr.isPresenting) {
+        renderer.setAnimationLoop(function () { renderer.render( scene, camera ); }); // Stop VR rendering loop
+    }
     delta = clock.getDelta();
     update(delta);
     render();
@@ -682,6 +698,18 @@ function onKeyDown(e) {
                 ufoSpotLight.intensity = spotLightOn ? 2 : 0;
             }
             break;
+        case 55: // '7'
+            if (!usingFixedCamera) {
+                previousCamera = camera;
+                camera = fixedCamera;
+                camera.updateProjectionMatrix();
+                usingFixedCamera = true;
+            } else {
+                camera = previousCamera;
+                camera.updateProjectionMatrix();
+                usingFixedCamera = false;
+            }
+            break;
     }
 }
 
@@ -710,28 +738,25 @@ function gerarTexturaCampoFloral() {
     canvas.width = 1024;
     canvas.height = 1024;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#b7ff7a'; // VERDE-CLARO VIBRANTE
+
+    // Fundo verde
+    ctx.fillStyle = "#4caf50";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const cores = [
-        '#ffffff', // branco
-        '#ffe066', // amarelo vivo
-        '#d1a3ff', // lilás claro
-        '#7ed6ff'  // azul-claro vivo
-    ];
-    for (let i = 0; i < 2000; i++) {
+
+    // Flores aleatórias
+    for (let i = 0; i < 400; i++) {
         const x = Math.random() * canvas.width;
         const y = Math.random() * canvas.height;
-        const r = Math.random() * 2.2 + 0.7;
+        const cores = ["#fff", "#ff0", "#c8a2c8", "#add8e6"];
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, 2 * Math.PI);
+        ctx.arc(x, y, Math.random() * 6 + 3, 0, 2 * Math.PI);
         ctx.fillStyle = cores[Math.floor(Math.random() * cores.length)];
-        ctx.globalAlpha = 0.92 + Math.random() * 0.08;
         ctx.fill();
     }
-    ctx.globalAlpha = 1.0;
+
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(3, 3);
+    texture.repeat.set(1, 1);
     return texture;
 }
 
