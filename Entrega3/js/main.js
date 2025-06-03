@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createHouse } from './casa.js';
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -68,7 +69,13 @@ function createScene(){
     
     createSkydome(0, -5, 0);
     createTerrain(0, -6.7, 0);
-    
+
+    // Adiciona a casa ao campo
+    const house = createHouse();
+    house.scale.set(2, 2, 2); // 2x bigger in all axes
+    house.position.set(30, 0, 30);
+    scene.add(house);
+
     // Add ambient light
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
@@ -384,13 +391,55 @@ function createCorkTree(x, y, z, s) {
     }
 }
 
-function scatterCorkTrees(numTrees) {
-    for (let i = 0; i < numTrees; i++) {
-        const x = (Math.random() - 0.5) * 160;
-        const z = (Math.random() - 0.5) * 160;
-        const scale = 0.8 + Math.random() * 0.7;
-        createCorkTree(x, 0, z, scale);
-    }
+function scatterCorkTrees() {
+    const terrainMesh = terrain.children[0];
+
+    // Posições escolhidas manualmente (fora do raio da casa e dentro do terreno)
+    const positions = [
+        [-30, -30],
+        [30, -40],
+        [-40, 50],
+        [50, 60],
+        [0, -10],
+        [-40, 20]
+    ];
+
+    const houseX = 30;
+    const houseZ = 30;
+    const houseRadius = 18;
+
+    positions.forEach(([x, z]) => {
+        // Confirma que está fora do raio da casa (por segurança)
+        const dx = x - houseX;
+        const dz = z - houseZ;
+        if (Math.sqrt(dx * dx + dz * dz) < houseRadius) return;
+
+        // Calcula a altura correta do terreno para cada árvore
+        const y = getTerrainHeight(x, z, terrainMesh);
+        const scale = 1.2 + Math.random() * 0.5;
+        createCorkTree(x, y, z, scale);
+    });
+}
+
+// Função auxiliar para obter a altura do terreno em (x, z)
+function getTerrainHeight(x, z, terrainMesh) {
+    const geometry = terrainMesh.geometry;
+    const positions = geometry.attributes.position;
+    const width = 200;
+    const height = 200;
+    const segments = 100;
+
+    // Map (x, z) to geometry grid indices
+    const gridX = Math.round(((x + width / 2) / width) * segments);
+    const gridZ = Math.round(((z + height / 2) / height) * segments);
+
+    const ix = Math.max(0, Math.min(segments, gridX));
+    const iz = Math.max(0, Math.min(segments, gridZ));
+
+    const index = iz * (segments + 1) + ix;
+    const y = positions.getZ(index); // Use getZ devido à rotação do terreno
+
+    return y + terrainMesh.parent.position.y;
 }
 
 // UFO creation
