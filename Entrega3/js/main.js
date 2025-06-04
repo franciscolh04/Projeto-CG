@@ -49,8 +49,8 @@ const treeMaterials = {
 var ufo, ufoPointLights = [], ufoSpotLight;
 var ufoSpeed = 10;
 var ufoRotationSpeed = 1;
-var pointLightsOn = true;
-var spotLightOn = true;
+var pointLightsOn = false;
+var spotLightOn = false;
 
 // UFO movement state (booleans for each arrow key)
 let ufoMove = {
