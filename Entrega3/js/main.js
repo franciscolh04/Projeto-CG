@@ -508,7 +508,7 @@ function createUFO(x, y, z) {
         bottomGroup.add(lightSphere);
 
         // Point light
-        const pointLight = new THREE.PointLight(0xffff00, 1, 10);
+        const pointLight = new THREE.PointLight(0xffff00, 10, 10);
         pointLight.position.set(x, -1.1, z); // subiu de -1.5 para -1.1
         pointLight.castShadow = true;
         bottomGroup.add(pointLight);
@@ -687,7 +687,7 @@ function onKeyDown(e) {
             console.log('Toggling point lights:', pointLightsOn);
             ufoPointLights.forEach(light => {
                 light.visible = pointLightsOn;
-                light.intensity = pointLightsOn ? 1 : 0;
+                light.intensity = pointLightsOn ? 10 : 0;
             });
             break;
         case 83: // S
