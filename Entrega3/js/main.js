@@ -63,6 +63,11 @@ let ufoMove = {
 // Fixed camera for VR
 let fixedCamera, usingFixedCamera = false, previousCamera;
 
+// Adiciona estas variáveis globais no topo do ficheiro:
+let isFixedCamera = false;
+let prevPosition = null;
+let prevTarget = null;
+
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -79,10 +84,6 @@ function createScene(){
     house.scale.set(2, 2, 2); // 2x bigger in all axes
     house.position.set(30, 0, 30);
     scene.add(house);
-
-    // Add ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
 }
 
 function createTerrainScene() {
@@ -699,15 +700,33 @@ function onKeyDown(e) {
             }
             break;
         case 55: // '7'
-            if (!usingFixedCamera) {
-                previousCamera = camera;
-                camera = fixedCamera;
+            if (!isFixedCamera) {
+                // Guarda a posição e direção atuais
+                prevPosition = camera.position.clone();
+                prevTarget = new THREE.Vector3(0, 0, 0); // ou o alvo atual se usares controls
+                // Define a vista fixa
+                camera.position.set(100, 60, 100);
+                camera.lookAt(0, 0, 0);
                 camera.updateProjectionMatrix();
-                usingFixedCamera = true;
+                isFixedCamera = true;
+
+                // Torna a frente da cúpula transparente
+                const skydomeMat = materials.get("skydome");
+                skydomeMat.transparent = true;
+                skydomeMat.opacity = 0.3; // ou outro valor mais confortável
+                skydomeMat.needsUpdate = true;
             } else {
-                camera = previousCamera;
+                // Restaura a posição e direção anteriores
+                if (prevPosition) camera.position.copy(prevPosition);
+                if (prevTarget) camera.lookAt(prevTarget);
                 camera.updateProjectionMatrix();
-                usingFixedCamera = false;
+                isFixedCamera = false;
+
+                // Restaura opacidade da cúpula
+                const skydomeMat = materials.get("skydome");
+                skydomeMat.opacity = 1.0;
+                skydomeMat.transparent = false;
+                skydomeMat.needsUpdate = true;
             }
             break;
     }
