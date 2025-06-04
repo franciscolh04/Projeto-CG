@@ -13,10 +13,11 @@ const createQuad = (v0, v1, v2, v3, material) => {
 export function createHouse() {
     const group = new THREE.Group();
     
-    const baseMaterial = new THREE.MeshBasicMaterial({ color: 0xe0dacd, side: THREE.FrontSide, WireFrame: true });
-    const roofMaterial = new THREE.MeshBasicMaterial({ color: 0xE25822, side: THREE.FrontSide, WireFrame: true });
-    const porchMaterial = new THREE.MeshBasicMaterial({ color: 0x8b4513, side: THREE.FrontSide, WireFrame: true });
-    const windowframeMaterial = new THREE.MeshBasicMaterial({ color: 0x4682B4, side: THREE.FrontSide, WireFrame: true });
+    const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xe0dacd, side: THREE.FrontSide, WireFrame: true });
+    const roofMaterial = new THREE.MeshPhongMaterial({ color: 0xE25822, side: THREE.FrontSide, WireFrame: true });
+    const porchMaterial = new THREE.MeshPhongMaterial({ color: 0x8b4513, side: THREE.FrontSide, WireFrame: true });
+    const windowframeMaterial = new THREE.MeshPhongMaterial({ color: 0x4682B4, side: THREE.FrontSide, WireFrame: true });
+    const windowMaterial = new THREE.MeshPhongMaterial({ color: 0x4682B4, side: THREE.FrontSide, WireFrame: true });
 
     const geom1 = new THREE.BufferGeometry().setFromPoints(listaV);
     geom1.setIndex([
@@ -58,6 +59,7 @@ export function createHouse() {
     ]);
     geom1.computeVertexNormals();
     group.add(new THREE.Mesh(geom1, baseMaterial));
+
 
     const geom2 = new THREE.BufferGeometry().setFromPoints(listaV);
     geom2.setIndex([
@@ -156,6 +158,13 @@ export function createHouse() {
     ]);
     geom5.computeVertexNormals();
     group.add(new THREE.Mesh(geom5, porchMaterial));
+
+    const geom6 = new THREE.BufferGeometry().setFromPoints(listaV);
+    geom6.setIndex([11, 12, 14,
+    14, 13, 11
+    ]);
+    geom6.computeVertexNormals();
+    group.add(new THREE.Mesh(geom6, porchMaterial));
 
 
     return group;
