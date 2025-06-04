@@ -68,6 +68,9 @@ let isFixedCamera = false;
 let prevPosition = null;
 let prevTarget = null;
 
+let currentMaterialType = 'phong';
+let lightingEnabled = true;
+
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -307,6 +310,22 @@ function createCorkTree(x, y, z, s) {
         z: new THREE.Vector3(0, 0, 1)
     };
 
+    const matDarkorange = {
+    lambert: new THREE.MeshLambertMaterial({ color: 0xcc7722 }),
+    phong:   new THREE.MeshPhongMaterial({ color: 0xcc7722, specular: 0x999999, shininess: 30 }),
+    toon:    new THREE.MeshToonMaterial({ color: 0xcc7722 })
+    };
+    const matBistre = {
+        lambert: new THREE.MeshLambertMaterial({ color: 0x3d2b1f }),
+        phong:   new THREE.MeshPhongMaterial({ color: 0x3d2b1f, specular: 0x999999, shininess: 30 }),
+        toon:    new THREE.MeshToonMaterial({ color: 0x3d2b1f })
+    };
+    const matDarkgreen = {
+        lambert: new THREE.MeshLambertMaterial({ color: 0x234d20 }),
+        phong:   new THREE.MeshPhongMaterial({ color: 0x234d20, specular: 0x999999, shininess: 30 }),
+        toon:    new THREE.MeshToonMaterial({ color: 0x234d20 })
+    };
+
     // Trunk 3D (parent: scene; children: lower trunk, upper trunk, trunk crown 3D, branch 3D)
     const trunk3D = new THREE.Object3D();
     trunk3D.position.set(x, y, z);
@@ -319,7 +338,8 @@ function createCorkTree(x, y, z, s) {
         s*d.lowTrunkH, 
         16
     );
-    const lowTrunk = new THREE.Mesh(lowTrunkGeo, m.darkorange);
+    const lowTrunk = new THREE.Mesh(lowTrunkGeo, matDarkorange.lambert);
+    lowTrunk.userData.materials = matDarkorange;
     lowTrunk.position.y = s*d.lowTrunkH/2;
     trunk3D.add(lowTrunk);
 
@@ -330,7 +350,8 @@ function createCorkTree(x, y, z, s) {
         s*d.uppTrunkH, 
         12
     );
-    const uppTrunk = new THREE.Mesh(uppTrunkGeo, m.bistre);
+    const uppTrunk = new THREE.Mesh(uppTrunkGeo, matBistre.lambert);
+    uppTrunk.userData.materials = matBistre;
     uppTrunk.position.y = s*(d.lowTrunkH + d.uppTrunkH/2);
     trunk3D.add(uppTrunk);
 
@@ -342,7 +363,8 @@ function createCorkTree(x, y, z, s) {
     // Trunk crown (ellipsoid)
     const trunkCrownGeo = new THREE.SphereGeometry(s*d.trunkCrownR, 16, 16);
     trunkCrownGeo.scale(1, 0.5, 1); // Make it ellipsoid
-    const trunkCrown = new THREE.Mesh(trunkCrownGeo, m.darkgreen);
+    const trunkCrown = new THREE.Mesh(trunkCrownGeo, matDarkgreen.lambert);
+    trunkCrown.userData.materials = matDarkgreen;
     trunkCrown.position.y = s*d.trunkCrownR/4;
     trunkCrown3D.add(trunkCrown);
 
@@ -358,7 +380,8 @@ function createCorkTree(x, y, z, s) {
         s*d.lowBranchH, 
         12
     );
-    const lowBranch = new THREE.Mesh(lowBranchGeo, m.darkorange);
+    const lowBranch = new THREE.Mesh(lowBranchGeo, matDarkorange.lambert);
+    lowBranch.userData.materials = matDarkorange;
     lowBranch.position.y = s*d.lowBranchH/2;
     branch3D.add(lowBranch);
 
@@ -369,7 +392,8 @@ function createCorkTree(x, y, z, s) {
         s*d.uppBranchH, 
         8
     );
-    const uppBranch = new THREE.Mesh(uppBranchGeo, m.bistre);
+    const uppBranch = new THREE.Mesh(uppBranchGeo, matBistre.lambert);
+    uppBranch.userData.materials = matBistre;
     uppBranch.position.y = s*(d.lowBranchH + d.uppBranchH/2);
     branch3D.add(uppBranch);
 
@@ -381,7 +405,8 @@ function createCorkTree(x, y, z, s) {
     // Branch crown (ellipsoid)
     const branchCrownGeo = new THREE.SphereGeometry(s*d.branchCrownR, 12, 12);
     branchCrownGeo.scale(1, 0.5, 1); // Make it ellipsoid
-    const branchCrown = new THREE.Mesh(branchCrownGeo, m.darkgreen);
+    const branchCrown = new THREE.Mesh(branchCrownGeo, matDarkgreen.lambert);
+    branchCrown.userData.materials = matDarkgreen;
     branchCrown.position.y = s*d.branchCrownR/4;
     branchCrown3D.add(branchCrown);
 
@@ -466,7 +491,13 @@ function createUFO(x, y, z) {
         specular: 0x999999, 
         shininess: 30 
     });
-    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+
+    const lambert = new THREE.MeshLambertMaterial({ color: 0x444444 });
+    const phong = new THREE.MeshPhongMaterial({ color: 0x444444, specular: 0x999999, shininess: 30 });
+    const toon = new THREE.MeshToonMaterial({ color: 0x444444 });
+
+    const body = new THREE.Mesh(bodyGeometry, lambert);
+    body.userData.materials = { lambert, phong, toon };
     ufo.add(body);
 
     // Cockpit (spherical cap)
@@ -698,6 +729,26 @@ function onKeyDown(e) {
                 ufoSpotLight.distance = 40;
             }
             break;
+        case 81: // Q/q - Gouraud (Lambert)
+        case 113:
+            currentMaterialType = 'lambert';
+            if (lightingEnabled) setMaterialType('lambert');
+            break;
+        case 87: // W/w - Phong
+        case 119:
+            currentMaterialType = 'phong';
+            if (lightingEnabled) setMaterialType('phong');
+            break;
+        case 69: // E/e - Toon
+        case 101:
+            currentMaterialType = 'toon';
+            if (lightingEnabled) setMaterialType('toon');
+            break;
+        case 82: // R/r - Toggle lighting
+        case 114:
+            lightingEnabled = !lightingEnabled;
+            dsetLightingEnabled(lightingEnabled);
+            break;
         case 55: // '7'
             if (!isFixedCamera) {
                 // Guarda a posição e direção atuais
@@ -749,6 +800,27 @@ function onKeyUp(e) {
             ufoMove.down = false;
             break;
     }
+}
+
+function setMaterialType(type) {
+    scene.traverse(obj => {
+        if (obj.isMesh && obj.userData.materials) {
+            obj.material = obj.userData.materials[type];
+        }
+    });
+}
+
+function dsetLightingEnabled(enabled) {
+    scene.traverse(obj => {
+        if (obj.isMesh && obj.userData.materials) {
+            if (enabled) {
+                // Repõe o material atual (podes guardar o tipo atual numa variável global, ex: currentMaterialType)
+                obj.material = obj.userData.materials[currentMaterialType];
+            } else {
+                obj.material = new THREE.MeshBasicMaterial({ color: obj.material.color });
+            }
+        }
+    });
 }
 
 function gerarTexturaCampoFloral() {
