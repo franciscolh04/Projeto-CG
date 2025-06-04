@@ -12,7 +12,7 @@ const createQuad = (v0, v1, v2, v3, material) => {
 
 export function createHouse() {
     const group = new THREE.Group();
-    
+
     const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xe0dacd, side: THREE.FrontSide, WireFrame: true });
     const roofMaterial = new THREE.MeshPhongMaterial({ color: 0xE25822, side: THREE.FrontSide, WireFrame: true });
     const porchMaterial = new THREE.MeshPhongMaterial({ color: 0x8b4513, side: THREE.FrontSide, WireFrame: true });
@@ -58,7 +58,10 @@ export function createHouse() {
     60, 53, 59
     ]);
     geom1.computeVertexNormals();
-    group.add(new THREE.Mesh(geom1, baseMaterial));
+    // Paredes/base
+    const meshBase = new THREE.Mesh(geom1, baseMaterials.lambert);
+    meshBase.userData.materials = baseMaterials;
+    group.add(meshBase);
 
 
     const geom2 = new THREE.BufferGeometry().setFromPoints(listaV);
@@ -112,7 +115,10 @@ export function createHouse() {
 
     ]);
     geom2.computeVertexNormals();
-    group.add(new THREE.Mesh(geom2, windowframeMaterial));
+    // Caixilhos das janelas
+    const meshWindowFrame = new THREE.Mesh(geom2, windowframeMaterials.lambert);
+    meshWindowFrame.userData.materials = windowframeMaterials;
+    group.add(meshWindowFrame);
 
     const geom3 = new THREE.BufferGeometry().setFromPoints(listaV);
     geom3.setIndex([
@@ -135,7 +141,10 @@ export function createHouse() {
     17, 18, 6,
     ]);
     geom3.computeVertexNormals();
-    group.add(new THREE.Mesh(geom3, roofMaterial));
+    // Telhado
+    const meshRoof = new THREE.Mesh(geom3, roofMaterials.lambert);
+    meshRoof.userData.materials = roofMaterials;
+    group.add(meshRoof);
 
 
     const geom4 = new THREE.BufferGeometry().setFromPoints(listaV);
@@ -146,7 +155,10 @@ export function createHouse() {
     
     ]);
     geom4.computeVertexNormals();
-    group.add(new THREE.Mesh(geom4, porchMaterial));
+    // Varanda (geom4, geom5, geom6)
+    const meshPorch1 = new THREE.Mesh(geom4, porchMaterials.lambert);
+    meshPorch1.userData.materials = porchMaterials;
+    group.add(meshPorch1);
 
     const geom5 = new THREE.BufferGeometry().setFromPoints(listaV);
     geom5.setIndex([1, 2, 4,
@@ -157,14 +169,18 @@ export function createHouse() {
     3, 33, 67
     ]);
     geom5.computeVertexNormals();
-    group.add(new THREE.Mesh(geom5, porchMaterial));
+    const meshPorch2 = new THREE.Mesh(geom5, porchMaterials.lambert);
+    meshPorch2.userData.materials = porchMaterials;
+    group.add(meshPorch2);
 
     const geom6 = new THREE.BufferGeometry().setFromPoints(listaV);
     geom6.setIndex([11, 12, 14,
     14, 13, 11
     ]);
     geom6.computeVertexNormals();
-    group.add(new THREE.Mesh(geom6, porchMaterial));
+    const meshPorch3 = new THREE.Mesh(geom6, porchMaterials.lambert);
+    meshPorch3.userData.materials = porchMaterials;
+    group.add(meshPorch3);
 
 
     return group;
@@ -268,3 +284,25 @@ v31, v32, v33, v34, v35, v36, v37, v38, v39, v40,
 v41, v42, v43, v44, v45, v46, v47, v48, v49, v50,
 v51, v52, v53, v54, v55, v56, v57, v58, v59, v60,
 v61, v62, v63, v64, v65, v66, v67, v68, v69];
+
+// Materials definitions
+const baseMaterials = {
+    lambert: new THREE.MeshLambertMaterial({ color: 0xe0dacd, side: THREE.FrontSide }),
+    phong:   new THREE.MeshPhongMaterial({ color: 0xe0dacd, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
+    toon:    new THREE.MeshToonMaterial({ color: 0xe0dacd, side: THREE.FrontSide })
+};
+const roofMaterials = {
+    lambert: new THREE.MeshLambertMaterial({ color: 0xE25822, side: THREE.FrontSide }),
+    phong:   new THREE.MeshPhongMaterial({ color: 0xE25822, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
+    toon:    new THREE.MeshToonMaterial({ color: 0xE25822, side: THREE.FrontSide })
+};
+const porchMaterials = {
+    lambert: new THREE.MeshLambertMaterial({ color: 0x8b4513, side: THREE.FrontSide }),
+    phong:   new THREE.MeshPhongMaterial({ color: 0x8b4513, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
+    toon:    new THREE.MeshToonMaterial({ color: 0x8b4513, side: THREE.FrontSide })
+};
+const windowframeMaterials = {
+    lambert: new THREE.MeshLambertMaterial({ color: 0x4682B4, side: THREE.FrontSide }),
+    phong:   new THREE.MeshPhongMaterial({ color: 0x4682B4, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
+    toon:    new THREE.MeshToonMaterial({ color: 0x4682B4, side: THREE.FrontSide })
+};
