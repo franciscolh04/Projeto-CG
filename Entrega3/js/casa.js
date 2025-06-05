@@ -1,23 +1,30 @@
 import * as THREE from 'three';
 import { L_Base, H_Base, W_Base, H_Top, W_Porch, H_Roof, R_Porch_Column, W_Window, W_Window_Frame, H_Floor, W_Chimney, L_Chimney, H_Chimney, H_TopChimney } from './const.js';
 
-const createQuad = (v0, v1, v2, v3, material) => {
-    const geom = new THREE.BufferGeometry().setFromPoints([v0, v1, v2, v3]);
-    geom.setIndex([0, 1, 2, 0, 2, 3]);
-    geom.computeVertexNormals();
-    return new THREE.Mesh(geom, material);
-}
-
-
+// Materials definitions
+const baseMaterials = {
+    lambert: new THREE.MeshLambertMaterial({ color: 0xe0dacd, side: THREE.FrontSide }),
+    phong:   new THREE.MeshPhongMaterial({ color: 0xe0dacd, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
+    toon:    new THREE.MeshToonMaterial({ color: 0xe0dacd, side: THREE.FrontSide })
+};
+const roofMaterials = {
+    lambert: new THREE.MeshLambertMaterial({ color: 0xE25822, side: THREE.FrontSide }),
+    phong:   new THREE.MeshPhongMaterial({ color: 0xE25822, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
+    toon:    new THREE.MeshToonMaterial({ color: 0xE25822, side: THREE.FrontSide })
+};
+const porchMaterials = {
+    lambert: new THREE.MeshLambertMaterial({ color: 0x8b4513, side: THREE.FrontSide }),
+    phong:   new THREE.MeshPhongMaterial({ color: 0x8b4513, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
+    toon:    new THREE.MeshToonMaterial({ color: 0x8b4513, side: THREE.FrontSide })
+};
+const windowframeMaterials = {
+    lambert: new THREE.MeshLambertMaterial({ color: 0x4682B4, side: THREE.FrontSide }),
+    phong:   new THREE.MeshPhongMaterial({ color: 0x4682B4, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
+    toon:    new THREE.MeshToonMaterial({ color: 0x4682B4, side: THREE.FrontSide })
+};
 
 export function createHouse() {
     const group = new THREE.Group();
-
-    const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xe0dacd, side: THREE.FrontSide, WireFrame: true });
-    const roofMaterial = new THREE.MeshPhongMaterial({ color: 0xE25822, side: THREE.FrontSide, WireFrame: true });
-    const porchMaterial = new THREE.MeshPhongMaterial({ color: 0x8b4513, side: THREE.FrontSide, WireFrame: true });
-    const windowframeMaterial = new THREE.MeshPhongMaterial({ color: 0x4682B4, side: THREE.FrontSide, WireFrame: true });
-    const windowMaterial = new THREE.MeshPhongMaterial({ color: 0x4682B4, side: THREE.FrontSide, WireFrame: true });
 
     const geom1 = new THREE.BufferGeometry().setFromPoints(listaV);
     geom1.setIndex([
@@ -284,25 +291,3 @@ v31, v32, v33, v34, v35, v36, v37, v38, v39, v40,
 v41, v42, v43, v44, v45, v46, v47, v48, v49, v50,
 v51, v52, v53, v54, v55, v56, v57, v58, v59, v60,
 v61, v62, v63, v64, v65, v66, v67, v68, v69];
-
-// Materials definitions
-const baseMaterials = {
-    lambert: new THREE.MeshLambertMaterial({ color: 0xe0dacd, side: THREE.FrontSide }),
-    phong:   new THREE.MeshPhongMaterial({ color: 0xe0dacd, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
-    toon:    new THREE.MeshToonMaterial({ color: 0xe0dacd, side: THREE.FrontSide })
-};
-const roofMaterials = {
-    lambert: new THREE.MeshLambertMaterial({ color: 0xE25822, side: THREE.FrontSide }),
-    phong:   new THREE.MeshPhongMaterial({ color: 0xE25822, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
-    toon:    new THREE.MeshToonMaterial({ color: 0xE25822, side: THREE.FrontSide })
-};
-const porchMaterials = {
-    lambert: new THREE.MeshLambertMaterial({ color: 0x8b4513, side: THREE.FrontSide }),
-    phong:   new THREE.MeshPhongMaterial({ color: 0x8b4513, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
-    toon:    new THREE.MeshToonMaterial({ color: 0x8b4513, side: THREE.FrontSide })
-};
-const windowframeMaterials = {
-    lambert: new THREE.MeshLambertMaterial({ color: 0x4682B4, side: THREE.FrontSide }),
-    phong:   new THREE.MeshPhongMaterial({ color: 0x4682B4, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
-    toon:    new THREE.MeshToonMaterial({ color: 0x4682B4, side: THREE.FrontSide })
-};

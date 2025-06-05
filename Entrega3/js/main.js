@@ -5,20 +5,29 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
-
 var cameras = [], camera, scene, bufferSceneTerrain, bufferTextureTerrain, bufferSceneSky, bufferTextureSky, renderer;
-var geometry, mesh;
+let isFixedCamera = false;
+let prevPosition = null;
+let prevTarget = null;
 var skydome, terrain;
 
-// materials
+// Fixed camera for VR
+let fixedCamera;
+
+// Materials
 const materials = new Map();
+let currentMaterialType = 'phong';
+
+// Animation
 const clock = new THREE.Clock();
 var delta;
 const keys = {};
 
-let globalLight; // luz direcional global
-let moon;        // referência à lua
+// Lights
+let globalLight;
+let moon;
 let lightOn = true;
+let lightingEnabled = true;
 
 // Tree parameters
 const treeParams = {
@@ -60,17 +69,6 @@ let ufoMove = {
     down: false
 };
 
-// Fixed camera for VR
-let fixedCamera, usingFixedCamera = false, previousCamera;
-
-// Adiciona estas variáveis globais no topo do ficheiro:
-let isFixedCamera = false;
-let prevPosition = null;
-let prevTarget = null;
-
-let currentMaterialType = 'phong';
-let lightingEnabled = true;
-
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -89,46 +87,26 @@ function createScene(){
     scene.add(house);
 }
 
-function createTerrainScene() {
+function createSkydome(x, y, z) {
     'use strict';
-    bufferSceneTerrain = new THREE.Scene();
-    bufferSceneTerrain.background = new THREE.Color(0x90EE90); // Light green background
-    bufferTextureTerrain = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { 
-        wrapT: THREE.RepeatWrapping, 
-        wrapS: THREE.RepeatWrapping, 
-        minFilter: THREE.LinearFilter, 
-        magFilter: THREE.NearestFilter
-    });
-    
-    createFlowers();
-    
-    renderer.setRenderTarget(bufferTextureTerrain);
-    renderer.render(bufferSceneTerrain, cameras[0]);
-    renderer.setRenderTarget(null);
-    bufferTextureTerrain.texture.repeat.set(3, 3);
-    materials.get("terrain").map = bufferTextureTerrain.texture;
-    materials.get("terrain").needsUpdate = true;
+    skydome = new THREE.Object3D();
+    const geometry = new THREE.SphereGeometry(100, 32, 16);
+    const mesh = new THREE.Mesh(geometry, materials.get("skydome"));
+    mesh.scale.set(1, 1, -1); // Invert the sphere to see inside
+    skydome.add(mesh);
+    skydome.position.set(x, y, z);
+    scene.add(skydome);
 }
 
-function createSkyScene() {
+function createTerrain(x, y, z) {
     'use strict';
-    bufferSceneSky = new THREE.Scene();
-    bufferTextureSky = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { 
-        wrapT: THREE.RepeatWrapping, 
-        wrapS: THREE.RepeatWrapping, 
-        minFilter: THREE.LinearFilter, 
-        magFilter: THREE.NearestFilter
-    });
-    
-    createDegrade();
-    createStars();
-    
-    renderer.setRenderTarget(bufferTextureSky);
-    renderer.render(bufferSceneSky, cameras[0]);
-    renderer.setRenderTarget(null);
-    bufferTextureSky.texture.repeat.set(4, 1);
-    materials.get("skydome").map = bufferTextureSky.texture;
-    materials.get("skydome").needsUpdate = true;
+    terrain = new THREE.Object3D();
+    const geometry = new THREE.PlaneGeometry(200, 200, 100, 100);
+    const mesh = new THREE.Mesh(geometry, materials.get("terrain"));
+    terrain.add(mesh);
+    terrain.rotation.x = -Math.PI / 2;
+    terrain.position.set(x, y, z);
+    scene.add(terrain);
 }
 
 //////////////////////
@@ -171,6 +149,7 @@ function createCameras() {
 /* CREATE OBJECT3D(S) */
 ////////////////////////
 
+// Scenary
 function createMaterials() {
     'use strict';
     // Load heightmap texture
@@ -178,8 +157,8 @@ function createMaterials() {
     const texture = loader.load('textures/heightmap.png');
     
     // Gera texturas procedurais
-    const floralTexture = gerarTexturaCampoFloral();
-    const skyTexture = gerarTexturaCeuEstrelado();
+    const floralTexture = createFlowerTexture();
+    const skyTexture = createStarsTexture();
 
     materials.set("skydome", new THREE.MeshBasicMaterial({ 
         side: THREE.DoubleSide, 
@@ -195,97 +174,61 @@ function createMaterials() {
     }));
 }
 
-function createFlowers() {
-    'use strict';
-    const colors = [0xFFFFFF, 0xFFFF00, 0xC8A2C8, 0xADD8E6]; // white, yellow, lilac, light blue
-    const flowers = [];
-    
-    for (let i = 0; i < 500; i++) {
-        const flower = new THREE.Object3D();
-        const geometry = new THREE.CircleGeometry(0.1, 16);
-        const material = new THREE.MeshBasicMaterial({ 
-            color: colors[Math.floor(Math.random() * colors.length)], 
-            side: THREE.DoubleSide 
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-        flower.add(mesh);
-        
-        // Random position
-        flower.position.set(
-            Math.random() * window.innerWidth - window.innerWidth/2,
-            Math.random() * window.innerHeight - window.innerHeight/2,
-            0
-        );
-        
-        bufferSceneTerrain.add(flower);
+function createFlowerTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext('2d');
+
+    // Green background
+    ctx.fillStyle = "#4caf50";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Random flowers
+    for (let i = 0; i < 400; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const cores = ["#fff", "#ff0", "#c8a2c8", "#add8e6"];
+        ctx.beginPath();
+        ctx.arc(x, y, Math.random() * 6 + 3, 0, 2 * Math.PI);
+        ctx.fillStyle = cores[Math.floor(Math.random() * cores.length)];
+        ctx.fill();
     }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
+    return texture;
 }
 
-function createStars() {
-    'use strict';
-    for (let i = 0; i < 1000; i++) {
-        const star = new THREE.Object3D();
-        const geometry = new THREE.CircleGeometry(0.05, 16);
-        const material = new THREE.MeshBasicMaterial({ 
-            color: 0xFFFFFF, 
-            side: THREE.DoubleSide 
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-        star.add(mesh);
-        
-        // Random position
-        star.position.set(
-            Math.random() * window.innerWidth - window.innerWidth/2,
-            Math.random() * window.innerHeight - window.innerHeight/2,
-            0
-        );
-        
-        bufferSceneSky.add(star);
+function createStarsTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext('2d');
+    // Linear gradient background
+    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grad.addColorStop(0, '#0a0a40'); // dark-blue
+    grad.addColorStop(1, '#3d0a40'); // dark-purple
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Estrelas
+    for (let i = 0; i < 800; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const r = Math.random() * 1.5 + 0.5;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, 2 * Math.PI);
+        ctx.fillStyle = 'white';
+        ctx.fill();
     }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
+    return texture;
 }
 
-function createDegrade() {
-    'use strict';
-    const degrade = new THREE.Object3D();
-    const geometry = new THREE.PlaneGeometry(window.innerWidth, window.innerHeight, 1, 1);
-
-    // Dark blue to dark purple gradient
-    const colors = new Float32Array([
-        0.00, 0.05, 0.28,  // top left (dark blue)
-        0.00, 0.05, 0.28,  // top right
-        0.22, 0.00, 0.28,  // bottom left (dark purple)
-        0.22, 0.00, 0.28   // bottom right
-    ]);
-
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    const material = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
-    const mesh = new THREE.Mesh(geometry, material);
-    degrade.add(mesh);
-    bufferSceneSky.add(degrade);
-}
-
-function createSkydome(x, y, z) {
-    'use strict';
-    skydome = new THREE.Object3D();
-    const geometry = new THREE.SphereGeometry(100, 32, 16);
-    const mesh = new THREE.Mesh(geometry, materials.get("skydome"));
-    mesh.scale.set(1, 1, -1); // Invert the sphere to see inside
-    skydome.add(mesh);
-    skydome.position.set(x, y, z);
-    scene.add(skydome);
-}
-
-function createTerrain(x, y, z) {
-    'use strict';
-    terrain = new THREE.Object3D();
-    const geometry = new THREE.PlaneGeometry(200, 200, 100, 100);
-    const mesh = new THREE.Mesh(geometry, materials.get("terrain"));
-    terrain.add(mesh);
-    terrain.rotation.x = -Math.PI / 2;
-    terrain.position.set(x, y, z);
-    scene.add(terrain);
-}
-
+// Moon
 function createMoon(x, y, z) {
     const geometry = new THREE.SphereGeometry(4, 32, 32);
     const material = new THREE.MeshPhongMaterial({
@@ -300,6 +243,7 @@ function createMoon(x, y, z) {
     return moon;
 }
 
+// Tree
 function createCorkTree(x, y, z, s) {
     'use strict';
     const d = treeParams;
@@ -429,7 +373,7 @@ function createCorkTree(x, y, z, s) {
 function scatterCorkTrees() {
     const terrainMesh = terrain.children[0];
 
-    // Posições escolhidas manualmente (fora do raio da casa e dentro do terreno)
+    // Manually chosen positions (outside the house radius and within the terrain)
     const positions = [
         [-30, -30],
         [30, -40],
@@ -444,19 +388,19 @@ function scatterCorkTrees() {
     const houseRadius = 18;
 
     positions.forEach(([x, z]) => {
-        // Confirma que está fora do raio da casa (por segurança)
+        // Assures the tree is outside the house radius
         const dx = x - houseX;
         const dz = z - houseZ;
         if (Math.sqrt(dx * dx + dz * dz) < houseRadius) return;
 
-        // Calcula a altura correta do terreno para cada árvore
+        // Computes the correct terrain height for each tree
         const y = getTerrainHeight(x, z, terrainMesh);
         const scale = 1.2 + Math.random() * 0.5;
         createCorkTree(x, y, z, scale);
     });
 }
 
-// Função auxiliar para obter a altura do terreno em (x, z)
+// Auxiliar function to get terrain height at a specific (x, z) position
 function getTerrainHeight(x, z, terrainMesh) {
     const geometry = terrainMesh.geometry;
     const positions = geometry.attributes.position;
@@ -472,12 +416,12 @@ function getTerrainHeight(x, z, terrainMesh) {
     const iz = Math.max(0, Math.min(segments, gridZ));
 
     const index = iz * (segments + 1) + ix;
-    const y = positions.getZ(index); // Use getZ devido à rotação do terreno
+    const y = positions.getZ(index);
 
     return y + terrainMesh.parent.position.y;
 }
 
-// UFO creation
+// UFO
 function createUFO(x, y, z) {
     'use strict';
     ufo = new THREE.Object3D();
@@ -518,8 +462,8 @@ function createUFO(x, y, z) {
     const radius = 2.5;
     const lightCount = 16;
 
-    // Ajuste: eleva o grupo das luzes e cilindro para ficarem ligeiramente sobrepostos com a esfera achatada
-    bottomGroup.position.y = 0.15; // valor ajustado para sobreposição suave
+    // Small fix: to ensure the lights and cylinder are slightly above the bottom of the UFO
+    bottomGroup.position.y = 0.15;
 
     // Small spheres and point lights
     for (let i = 0; i < lightCount; i++) {
@@ -535,39 +479,39 @@ function createUFO(x, y, z) {
             emissiveIntensity: 0.5
         });
         const lightSphere = new THREE.Mesh(lightSphereGeo, lightSphereMat);
-        lightSphere.position.set(x, -0.6, z); // subiu de -1 para -0.6
+        lightSphere.position.set(x, -0.6, z);
         bottomGroup.add(lightSphere);
 
         // Point light
-        const pointLight = new THREE.PointLight(0xffff00, 1.5, 500); // intensidade menor, alcance maior
-        pointLight.position.set(x, -1.1, z); // subiu de -1.5 para -1.1
+        const pointLight = new THREE.PointLight(0xffff00, 1.5, 500); // less intensity, higher reach
+        pointLight.position.set(x, -1.1, z);
         pointLight.castShadow = true;
         bottomGroup.add(pointLight);
         ufoPointLights.push(pointLight);
     }
 
-    // Central cylinder (agora amarelo para destacar a luz spotlight)
+    // Central cylinder
     const cylinderGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32);
     cylinderGeo.scale(1, 4, 1); // Flatten it
     const cylinderMat = new THREE.MeshPhongMaterial({ 
-        color: 0xffff00, // amarelo
+        color: 0xffff00, // yellow color
         emissive: 0xffff00,
         emissiveIntensity: 0.7
     });
     const cylinder = new THREE.Mesh(cylinderGeo, cylinderMat);
-    cylinder.position.y = -0.8; // subiu de -1.2 para -0.8
+    cylinder.position.y = -0.8;
     bottomGroup.add(cylinder);
 
     // Spotlight
     ufoSpotLight = new THREE.SpotLight(0xffffff, 2, 30, Math.PI/4, 0.5);
-    ufoSpotLight.position.set(0, -1.1, 0); // subiu de -1.5 para -1.1
+    ufoSpotLight.position.set(0, -1.1, 0);
     ufoSpotLight.target.position.set(0, -10, 0);
     ufoSpotLight.castShadow = true;
     bottomGroup.add(ufoSpotLight);
     bottomGroup.add(ufoSpotLight.target);
 
     ufo.add(bottomGroup);
-    ufo.scale.set(3, 3, 3); // UFO maior
+    ufo.scale.set(3, 3, 3); // UFO 3x bigger in all axes
 
     // Initialize light states
     ufoPointLights.forEach(light => {
@@ -625,20 +569,20 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    createCameras();      // 1º - cria cameras
-    createMaterials();    // 2º - gera texturas usando cameras[0]
-    createScene();        // 3º - cria objetos principais
+    createCameras();      // 1º - create cameras
+    createMaterials();    // 2º - create textures and materials
+    createScene();        // 3º - create the scene
 
-    moon = createMoon(40, 40, -30); // Posição alta e lateral
+    moon = createMoon(40, 40, -30); // Higher position for better visibility
 
     globalLight = new THREE.DirectionalLight(0xffffff, 1.1);
-    globalLight.position.set(20, 30, 10); // Ângulo diferente de zero
+    globalLight.position.set(20, 30, 10);
     globalLight.target.position.set(0, 0, 0);
     scene.add(globalLight);
     scene.add(globalLight.target);
 
     // Add cork trees to the scene
-    scatterCorkTrees(12); // Creates 12 trees with random variations
+    scatterCorkTrees();
 
     // Create UFO
     createUFO(0, 35, 0);
@@ -664,6 +608,26 @@ function animate() {
     update(delta);
     render();
     requestAnimationFrame(animate);
+}
+
+function setMaterialType(type) {
+    scene.traverse(obj => {
+        if (obj.isMesh && obj.userData.materials) {
+            obj.material = obj.userData.materials[type];
+        }
+    });
+}
+
+function dsetLightingEnabled(enabled) {
+    scene.traverse(obj => {
+        if (obj.isMesh && obj.userData.materials) {
+            if (enabled) {
+                obj.material = obj.userData.materials[currentMaterialType];
+            } else {
+                obj.material = new THREE.MeshBasicMaterial({ color: obj.material.color });
+            }
+        }
+    });
 }
 
 ////////////////////////////
@@ -696,12 +660,12 @@ function onKeyDown(e) {
         case 40: // Down arrow
             ufoMove.down = true;
             break;
-        case 49: // 1 - Campo floral no terreno
-            materials.get("terrain").map = gerarTexturaCampoFloral();
+        case 49: // 1 - Floral texture on terrain
+            materials.get("terrain").map = createFlowerTexture();
             materials.get("terrain").needsUpdate = true;
             break;
-        case 50: // 2 - Céu estrelado no skydome
-            materials.get("skydome").map = gerarTexturaCeuEstrelado();
+        case 50: // 2 - Stars texture on skydome
+            materials.get("skydome").map = createStarsTexture();
             materials.get("skydome").needsUpdate = true;
             break;
         case 68: // D
@@ -751,28 +715,27 @@ function onKeyDown(e) {
             break;
         case 55: // '7'
             if (!isFixedCamera) {
-                // Guarda a posição e direção atuais
                 prevPosition = camera.position.clone();
-                prevTarget = new THREE.Vector3(0, 0, 0); // ou o alvo atual se usares controls
-                // Define a vista fixa
+                prevTarget = new THREE.Vector3(0, 0, 0);
+                // Define the fixed camera position and direction
                 camera.position.set(100, 60, 100);
                 camera.lookAt(0, 0, 0);
                 camera.updateProjectionMatrix();
                 isFixedCamera = true;
 
-                // Torna a frente da cúpula transparente
+                // Makes the skydome more transparent
                 const skydomeMat = materials.get("skydome");
                 skydomeMat.transparent = true;
-                skydomeMat.opacity = 0.3; // ou outro valor mais confortável
+                skydomeMat.opacity = 0.3;
                 skydomeMat.needsUpdate = true;
             } else {
-                // Restaura a posição e direção anteriores
+                // Puts back the previous camera position and target
                 if (prevPosition) camera.position.copy(prevPosition);
                 if (prevTarget) camera.lookAt(prevTarget);
                 camera.updateProjectionMatrix();
                 isFixedCamera = false;
 
-                // Restaura opacidade da cúpula
+                // Puts back the skydome material to opaque
                 const skydomeMat = materials.get("skydome");
                 skydomeMat.opacity = 1.0;
                 skydomeMat.transparent = false;
@@ -800,81 +763,6 @@ function onKeyUp(e) {
             ufoMove.down = false;
             break;
     }
-}
-
-function setMaterialType(type) {
-    scene.traverse(obj => {
-        if (obj.isMesh && obj.userData.materials) {
-            obj.material = obj.userData.materials[type];
-        }
-    });
-}
-
-function dsetLightingEnabled(enabled) {
-    scene.traverse(obj => {
-        if (obj.isMesh && obj.userData.materials) {
-            if (enabled) {
-                // Repõe o material atual (podes guardar o tipo atual numa variável global, ex: currentMaterialType)
-                obj.material = obj.userData.materials[currentMaterialType];
-            } else {
-                obj.material = new THREE.MeshBasicMaterial({ color: obj.material.color });
-            }
-        }
-    });
-}
-
-function gerarTexturaCampoFloral() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 1024;
-    const ctx = canvas.getContext('2d');
-
-    // Fundo verde
-    ctx.fillStyle = "#4caf50";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Flores aleatórias
-    for (let i = 0; i < 400; i++) {
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
-        const cores = ["#fff", "#ff0", "#c8a2c8", "#add8e6"];
-        ctx.beginPath();
-        ctx.arc(x, y, Math.random() * 6 + 3, 0, 2 * Math.PI);
-        ctx.fillStyle = cores[Math.floor(Math.random() * cores.length)];
-        ctx.fill();
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(1, 1);
-    return texture;
-}
-
-function gerarTexturaCeuEstrelado() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 1024;
-    const ctx = canvas.getContext('2d');
-    // Degradé linear vertical
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, '#0a0a40'); // azul-escuro
-    grad.addColorStop(1, '#3d0a40'); // violeta-escuro
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Estrelas
-    for (let i = 0; i < 800; i++) {
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
-        const r = Math.random() * 1.5 + 0.5;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, 2 * Math.PI);
-        ctx.fillStyle = 'white';
-        ctx.fill();
-    }
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(1, 1);
-    return texture;
 }
 
 // Start the application
