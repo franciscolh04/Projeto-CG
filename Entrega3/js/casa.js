@@ -22,6 +22,11 @@ const windowframeMaterials = {
     phong:   new THREE.MeshPhongMaterial({ color: 0x4682B4, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
     toon:    new THREE.MeshToonMaterial({ color: 0x4682B4, side: THREE.FrontSide })
 };
+const windowMaterials = {
+    lambert: new THREE.MeshLambertMaterial({ color: 0xCCE5FF, side: THREE.FrontSide }),
+    phong:   new THREE.MeshPhongMaterial({ color: 0xCCE5FF, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
+    toon:    new THREE.MeshToonMaterial({ color: 0xCCE5FF, side: THREE.FrontSide })
+}
 
 export function createHouse() {
     const group = new THREE.Group();
@@ -158,8 +163,13 @@ export function createHouse() {
     geom4.setIndex([19, 17, 20,
     19, 16, 17,
     20, 68, 69,
-    69, 19, 20
-    
+    69, 19, 20,
+    1, 2, 4,
+    4, 3, 1,
+    2, 1, 16,
+    15, 16, 1,
+    3, 4, 33,
+    3, 33, 67
     ]);
     geom4.computeVertexNormals();
     // Varanda (geom4, geom5, geom6)
@@ -182,11 +192,19 @@ export function createHouse() {
 
     const geom6 = new THREE.BufferGeometry().setFromPoints(listaV);
     geom6.setIndex([11, 12, 14,
-    14, 13, 11
+    14, 13, 11,
+    40, 39, 42,
+    42, 41, 40,
+    48, 47, 50,
+    50, 49, 48,
+    56, 55, 58,
+    58, 57, 56,
+    64, 63, 66,,
+    66, 65, 64 
     ]);
     geom6.computeVertexNormals();
-    const meshPorch3 = new THREE.Mesh(geom6, porchMaterials.lambert);
-    meshPorch3.userData.materials = porchMaterials;
+    const meshPorch3 = new THREE.Mesh(geom6, windowMaterials.lambert);
+    meshPorch3.userData.materials = windowMaterials;
     group.add(meshPorch3);
 
 
