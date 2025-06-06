@@ -578,7 +578,7 @@ function init() {
 
     // Directional light
     globalLight = new THREE.DirectionalLight(0xffffff, 1.1);
-    globalLight.position.set(20, 30, 10);
+    globalLight.position.set(40, 40, -30);
     globalLight.target.position.set(0, 0, 0);
     scene.add(globalLight);
     scene.add(globalLight.target);
@@ -723,29 +723,41 @@ function onKeyDown(e) {
             if (!isFixedCamera) {
                 prevPosition = camera.position.clone();
                 prevTarget = new THREE.Vector3(0, 0, 0);
-                // Define the fixed camera position and direction
                 camera.position.set(100, 60, 100);
                 camera.lookAt(0, 0, 0);
                 camera.updateProjectionMatrix();
                 isFixedCamera = true;
 
-                // Makes the skydome more transparent
+                // Skydome transparente
                 const skydomeMat = materials.get("skydome");
                 skydomeMat.transparent = true;
                 skydomeMat.opacity = 0.3;
                 skydomeMat.needsUpdate = true;
+
+                // Torna a cúpula do OVNI opaca
+                if (ufo && ufo.children[1] && ufo.children[1].material) {
+                    ufo.children[1].material.opacity = 1.0;
+                    ufo.children[1].material.transparent = false;
+                    ufo.children[1].material.needsUpdate = true;
+                }
             } else {
-                // Puts back the previous camera position and target
                 if (prevPosition) camera.position.copy(prevPosition);
                 if (prevTarget) camera.lookAt(prevTarget);
                 camera.updateProjectionMatrix();
                 isFixedCamera = false;
 
-                // Puts back the skydome material to opaque
+                // Skydome opaco
                 const skydomeMat = materials.get("skydome");
                 skydomeMat.opacity = 1.0;
                 skydomeMat.transparent = false;
                 skydomeMat.needsUpdate = true;
+
+                // Repõe a opacidade original da cúpula do OVNI
+                if (ufo && ufo.children[1] && ufo.children[1].material) {
+                    ufo.children[1].material.opacity = 0.7;
+                    ufo.children[1].material.transparent = true;
+                    ufo.children[1].material.needsUpdate = true;
+                }
             }
             break;
     }
