@@ -25,6 +25,7 @@ const keys = {};
 
 // Lights
 let globalLight;
+let ambientLight;
 let moon;
 let lightOn = true;
 let lightingEnabled = true;
@@ -575,11 +576,16 @@ function init() {
 
     moon = createMoon(40, 40, -30); // Higher position for better visibility
 
+    // Directional light
     globalLight = new THREE.DirectionalLight(0xffffff, 1.1);
     globalLight.position.set(20, 30, 10);
     globalLight.target.position.set(0, 0, 0);
     scene.add(globalLight);
     scene.add(globalLight.target);
+    
+    // Ambient light
+    ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+    scene.add(ambientLight);
 
     // Add cork trees to the scene
     scatterCorkTrees();
