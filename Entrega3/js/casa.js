@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { L_Base, H_Base, W_Base, H_Top, W_Porch, H_Roof, R_Porch_Column, W_Window, W_Window_Frame, H_Floor, W_Chimney, L_Chimney, H_Chimney, H_TopChimney } from './const.js';
 
-// Materials definitions
+/**
+ * Materials for each part of the house, with three shading types.
+ */
 const baseMaterials = {
     lambert: new THREE.MeshLambertMaterial({ color: 0xe0dacd, side: THREE.FrontSide }),
     phong:   new THREE.MeshPhongMaterial({ color: 0xe0dacd, side: THREE.FrontSide, specular: 0x999999, shininess: 30 }),
@@ -28,54 +30,59 @@ const windowMaterials = {
     toon:    new THREE.MeshToonMaterial({ color: 0xCCE5FF, side: THREE.FrontSide })
 }
 
+/**
+ * Creates the house as a THREE.Group, with all geometry and materials set up.
+ * Each mesh has userData.materials for shading switching.
+ * @returns {THREE.Group} The house group.
+ */
 export function createHouse() {
     const group = new THREE.Group();
 
+    // Geometry and mesh for the house base/walls
     const geom1 = new THREE.BufferGeometry().setFromPoints(listaV);
     geom1.setIndex([
-    //Front of the house
-    2, 6, 7, 
-    2, 7, 8, 
-    2, 8, 4, 
-    8, 9, 4, 
-    9, 5, 4,
-    10, 5, 9,
-    6, 22, 5,
-    // Side of the house
-    4, 5, 36,
-    36, 5, 35,
-    35, 5, 38, 
-    38, 5, 43,
-    43, 5, 46,
-    46, 5, 51,
-    51, 5, 34,
-    34, 62, 54,
-    34, 59, 54,
-    34, 54, 51,
-    4, 36, 37,
-    4, 37, 44,
-    4, 44, 45,
-    4, 45, 52,
-    4, 52, 33,
-    33, 52, 53,
-    33, 53, 60,
-    33, 60, 61,
-    33, 61, 34,
-    34, 61, 62,
-    37, 38, 43,
-    44, 37, 43,
-    45, 46, 51,
-    52, 45, 51,
-    53, 54, 59,
-    60, 53, 59
+        //Front of the house
+        2, 6, 7, 
+        2, 7, 8, 
+        2, 8, 4, 
+        8, 9, 4, 
+        9, 5, 4,
+        10, 5, 9,
+        6, 22, 5,
+        // Side of the house
+        4, 5, 36,
+        36, 5, 35,
+        35, 5, 38, 
+        38, 5, 43,
+        43, 5, 46,
+        46, 5, 51,
+        51, 5, 34,
+        34, 62, 54,
+        34, 59, 54,
+        34, 54, 51,
+        4, 36, 37,
+        4, 37, 44,
+        4, 44, 45,
+        4, 45, 52,
+        4, 52, 33,
+        33, 52, 53,
+        33, 53, 60,
+        33, 60, 61,
+        33, 61, 34,
+        34, 61, 62,
+        37, 38, 43,
+        44, 37, 43,
+        45, 46, 51,
+        52, 45, 51,
+        53, 54, 59,
+        60, 53, 59
     ]);
     geom1.computeVertexNormals();
-    // Paredes/base
     const meshBase = new THREE.Mesh(geom1, baseMaterials.lambert);
     meshBase.userData.materials = baseMaterials;
     group.add(meshBase);
 
-
+    // Geometry and mesh for window frames
     const geom2 = new THREE.BufferGeometry().setFromPoints(listaV);
     geom2.setIndex([
     //front window
@@ -127,11 +134,11 @@ export function createHouse() {
 
     ]);
     geom2.computeVertexNormals();
-    // Caixilhos das janelas
     const meshWindowFrame = new THREE.Mesh(geom2, windowframeMaterials.lambert);
     meshWindowFrame.userData.materials = windowframeMaterials;
     group.add(meshWindowFrame);
 
+    // Geometry and mesh for the roof
     const geom3 = new THREE.BufferGeometry().setFromPoints(listaV);
     geom3.setIndex([
     // Roof front of the house
@@ -153,12 +160,12 @@ export function createHouse() {
     17, 18, 6,
     ]);
     geom3.computeVertexNormals();
-    // Telhado
     const meshRoof = new THREE.Mesh(geom3, roofMaterials.lambert);
     meshRoof.userData.materials = roofMaterials;
     group.add(meshRoof);
 
 
+    // Geometry and mesh for porch and windows
     const geom4 = new THREE.BufferGeometry().setFromPoints(listaV);
     geom4.setIndex([19, 17, 20,
     19, 16, 17,
@@ -172,7 +179,6 @@ export function createHouse() {
     3, 33, 67
     ]);
     geom4.computeVertexNormals();
-    // Varanda (geom4, geom5, geom6)
     const meshPorch1 = new THREE.Mesh(geom4, porchMaterials.lambert);
     meshPorch1.userData.materials = porchMaterials;
     group.add(meshPorch1);
@@ -212,7 +218,7 @@ export function createHouse() {
 }
 
 //Front of the house
-const v0 = new THREE.Vector3(0, 0, 0); // This is a placeholder, you can remove it later
+const v0 = new THREE.Vector3(0, 0, 0);
 const v1 = new THREE.Vector3(0, 0, 0);   
 const v2 = new THREE.Vector3(0, H_Floor, 0);
 const v3 = new THREE.Vector3(0, 0, W_Base);

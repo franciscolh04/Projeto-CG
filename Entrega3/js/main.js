@@ -5,6 +5,8 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
+
+// Cameras and scene
 var cameras = [], camera, scene, bufferSceneTerrain, bufferTextureTerrain, bufferSceneSky, bufferTextureSky, renderer;
 let isFixedCamera = false;
 let prevPosition = null;
@@ -30,7 +32,7 @@ let moon;
 let lightOn = true;
 let lightingEnabled = true;
 
-// Tree parameters
+// Tree parameters and materials
 const treeParams = {
     lowTrunkBotR: 0.7,
     lowTrunkTopR: 0.6,
@@ -47,8 +49,6 @@ const treeParams = {
     uppBranchH: 3,
     branchCrownR: 3
 };
-
-// Tree materials
 const treeMaterials = {
     darkorange: new THREE.MeshPhongMaterial({ color: 0xcc7722 }),
     bistre: new THREE.MeshPhongMaterial({ color: 0x3d2b1f }),
@@ -73,6 +73,10 @@ let ufoMove = {
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
+
+/**
+ * Creates the main scene, background, skydome, terrain, house, and adds them to the scene.
+ */
 function createScene(){
     'use strict';
     scene = new THREE.Scene();
@@ -81,13 +85,16 @@ function createScene(){
     createSkydome(0, -5, 0);
     createTerrain(0, -6.7, 0);
 
-    // Adiciona a casa ao campo
+    // Add house to the field
     const house = createHouse();
     house.scale.set(2, 2, 2); // 2x bigger in all axes
     house.position.set(30, 0, 30);
     scene.add(house);
 }
 
+/**
+ * Creates the skydome (inverted sphere) and adds it to the scene.
+ */
 function createSkydome(x, y, z) {
     'use strict';
     skydome = new THREE.Object3D();
@@ -99,6 +106,9 @@ function createSkydome(x, y, z) {
     scene.add(skydome);
 }
 
+/**
+ * Creates the terrain (plane) and adds it to the scene.
+ */
 function createTerrain(x, y, z) {
     'use strict';
     terrain = new THREE.Object3D();
@@ -113,6 +123,11 @@ function createTerrain(x, y, z) {
 //////////////////////
 /* CREATE CAMERA(S) */
 //////////////////////
+
+/**
+ * Creates two cameras: one orthographic for texture generation, one perspective for the main scene.
+ * Also creates a fixed camera for VR mode.
+ */
 function createCameras() {
     'use strict';
     const positions = [
@@ -140,7 +155,7 @@ function createCameras() {
     }
     camera = cameras[1];
 
-    // Fixed camera for VR
+    // Fixed camera for perspective view
     fixedCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
     fixedCamera.position.set(120, 80, 120);
     fixedCamera.lookAt(0, 0, 0);
@@ -150,14 +165,17 @@ function createCameras() {
 /* CREATE OBJECT3D(S) */
 ////////////////////////
 
-// Scenary
+/**
+ * Initializes and stores all materials needed for the scene.
+ * Loads textures and generates procedural textures for terrain and skydome.
+ */
 function createMaterials() {
     'use strict';
     // Load heightmap texture
     const loader = new THREE.TextureLoader();
     const texture = loader.load('textures/heightmap.png');
     
-    // Gera texturas procedurais
+    // Generate procedural textures
     const floralTexture = createFlowerTexture();
     const skyTexture = createStarsTexture();
 
@@ -175,6 +193,9 @@ function createMaterials() {
     }));
 }
 
+/**
+ * Generates a procedural flower texture for the terrain.
+ */
 function createFlowerTexture() {
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
@@ -202,6 +223,9 @@ function createFlowerTexture() {
     return texture;
 }
 
+/**
+ * Generates a procedural star texture for the skydome.
+ */
 function createStarsTexture() {
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
@@ -213,7 +237,7 @@ function createStarsTexture() {
     grad.addColorStop(1, '#3d0a40'); // dark-purple
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Estrelas
+    // Stars
     for (let i = 0; i < 800; i++) {
         const x = Math.random() * canvas.width;
         const y = Math.random() * canvas.height;
@@ -229,7 +253,9 @@ function createStarsTexture() {
     return texture;
 }
 
-// Moon
+/**
+ * Creates the moon as a bright emissive sphere and adds it to the scene.
+ */
 function createMoon(x, y, z) {
     const geometry = new THREE.SphereGeometry(4, 32, 32);
     const material = new THREE.MeshPhongMaterial({
@@ -244,7 +270,9 @@ function createMoon(x, y, z) {
     return moon;
 }
 
-// Tree
+/**
+ * Creates a cork tree at the given position and scale, with trunk, branches, and foliage.
+ */
 function createCorkTree(x, y, z, s) {
     'use strict';
     const d = treeParams;
@@ -255,10 +283,11 @@ function createCorkTree(x, y, z, s) {
         z: new THREE.Vector3(0, 0, 1)
     };
 
+    // Define three types of materials for each part
     const matDarkorange = {
-    lambert: new THREE.MeshLambertMaterial({ color: 0xcc7722 }),
-    phong:   new THREE.MeshPhongMaterial({ color: 0xcc7722, specular: 0x999999, shininess: 30 }),
-    toon:    new THREE.MeshToonMaterial({ color: 0xcc7722 })
+        lambert: new THREE.MeshLambertMaterial({ color: 0xcc7722 }),
+        phong:   new THREE.MeshPhongMaterial({ color: 0xcc7722, specular: 0x999999, shininess: 30 }),
+        toon:    new THREE.MeshToonMaterial({ color: 0xcc7722 })
     };
     const matBistre = {
         lambert: new THREE.MeshLambertMaterial({ color: 0x3d2b1f }),
@@ -355,7 +384,7 @@ function createCorkTree(x, y, z, s) {
     branchCrown.position.y = s*d.branchCrownR/4;
     branchCrown3D.add(branchCrown);
 
-    // Random rotations
+    // Random rotations for natural look
     trunk3D.rotateOnWorldAxis(rAxes.y, getRandomAngle(0, 2*Math.PI));
     trunk3D.rotateOnWorldAxis(rAxes.x, getRandomAngle(-Math.PI/16, Math.PI/16));
     trunk3D.rotateOnWorldAxis(rAxes.z, getRandomAngle(-Math.PI/8, 0));
@@ -371,6 +400,10 @@ function createCorkTree(x, y, z, s) {
     }
 }
 
+/**
+ * Scatters cork trees at predefined positions, avoiding the house area.
+ * Computes terrain height for each tree.
+ */
 function scatterCorkTrees() {
     const terrainMesh = terrain.children[0];
 
@@ -401,7 +434,9 @@ function scatterCorkTrees() {
     });
 }
 
-// Auxiliar function to get terrain height at a specific (x, z) position
+/**
+ * Gets the terrain height at a specific (x, z) position by sampling the geometry.
+ */
 function getTerrainHeight(x, z, terrainMesh) {
     const geometry = terrainMesh.geometry;
     const positions = geometry.attributes.position;
@@ -422,7 +457,10 @@ function getTerrainHeight(x, z, terrainMesh) {
     return y + terrainMesh.parent.position.y;
 }
 
-// UFO
+/**
+ * Creates the UFO object, with body, cockpit, lights, and spotlight.
+ * Adds it to the scene and sets up all materials for shading switching.
+ */
 function createUFO(x, y, z) {
     'use strict';
     ufo = new THREE.Object3D();
@@ -431,12 +469,6 @@ function createUFO(x, y, z) {
     // Main body (flattened sphere)
     const bodyGeometry = new THREE.SphereGeometry(3, 32, 32);
     bodyGeometry.scale(1, 0.3, 1); // Flatten the sphere
-    const bodyMaterial = new THREE.MeshPhongMaterial({ 
-        color: 0x444444, 
-        specular: 0x999999, 
-        shininess: 30 
-    });
-
     const lambert = new THREE.MeshLambertMaterial({ color: 0x444444 });
     const phong = new THREE.MeshPhongMaterial({ color: 0x444444, specular: 0x999999, shininess: 30 });
     const toon = new THREE.MeshToonMaterial({ color: 0x444444 });
@@ -463,7 +495,7 @@ function createUFO(x, y, z) {
     const radius = 2.5;
     const lightCount = 16;
 
-    // Small fix: to ensure the lights and cylinder are slightly above the bottom of the UFO
+    // Slightly above the bottom of the UFO
     bottomGroup.position.y = 0.15;
 
     // Small spheres and point lights
@@ -484,7 +516,7 @@ function createUFO(x, y, z) {
         bottomGroup.add(lightSphere);
 
         // Point light
-        const pointLight = new THREE.PointLight(0xffff00, 1.5, 500); // less intensity, higher reach
+        const pointLight = new THREE.PointLight(0xffff00, 1.5, 500);
         pointLight.position.set(x, -1.1, z);
         pointLight.castShadow = true;
         bottomGroup.add(pointLight);
@@ -495,7 +527,7 @@ function createUFO(x, y, z) {
     const cylinderGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32);
     cylinderGeo.scale(1, 4, 1); // Flatten it
     const cylinderMat = new THREE.MeshPhongMaterial({ 
-        color: 0xffff00, // yellow color
+        color: 0xffff00,
         emissive: 0xffff00,
         emissiveIntensity: 0.7
     });
@@ -526,13 +558,18 @@ function createUFO(x, y, z) {
 ////////////
 /* UPDATE */
 ////////////
+
+/**
+ * Updates the UFO's rotation and position based on movement flags.
+ * Keeps the UFO within scene bounds.
+ */
 function update(delta) {
     'use strict';
     // Update UFO rotation
     if (ufo) {
         ufo.rotation.y += ufoRotationSpeed * delta;
 
-        // UFO movement using booleans for smooth movement (like trailer in Entrega2)
+        // UFO movement using booleans for smooth movement
         const moveSpeed = ufoSpeed * delta;
         if (ufoMove.left) {
             ufo.position.x -= moveSpeed;
@@ -547,7 +584,7 @@ function update(delta) {
             ufo.position.z += moveSpeed;
         }
 
-        // Keep UFO within bounds (optional)
+        // Keep UFO within bounds
         ufo.position.x = Math.max(-80, Math.min(80, ufo.position.x));
         ufo.position.z = Math.max(-80, Math.min(80, ufo.position.z));
     }
@@ -556,6 +593,10 @@ function update(delta) {
 /////////////
 /* DISPLAY */
 /////////////
+
+/**
+ * Renders the current scene from the active camera.
+ */
 function render() {
     'use strict';
     renderer.render(scene, camera);
@@ -564,6 +605,11 @@ function render() {
 ////////////////////////////////
 /* INITIALIZE ANIMATION CYCLE */
 ////////////////////////////////
+
+/**
+ * Initializes the renderer, cameras, materials, scene, moon, lights, trees, UFO, and event listeners.
+ * Also enables VR mode.
+ */
 function init() {
     'use strict';
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -605,6 +651,10 @@ function init() {
 /////////////////////
 /* ANIMATION CYCLE */
 /////////////////////
+
+/**
+ * Main animation loop: updates state and renders the scene.
+ */
 function animate() {
     'use strict';
     if (!renderer.xr.isPresenting) {
@@ -616,6 +666,9 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
+/**
+ * Switches the material type (lambert, phong, toon) for all objects with userData.materials.
+ */
 function setMaterialType(type) {
     scene.traverse(obj => {
         if (obj.isMesh && obj.userData.materials) {
@@ -624,6 +677,9 @@ function setMaterialType(type) {
     });
 }
 
+/**
+ * Enables or disables lighting calculation by switching to MeshBasicMaterial or restoring the selected material.
+ */
 function dsetLightingEnabled(enabled) {
     scene.traverse(obj => {
         if (obj.isMesh && obj.userData.materials) {
@@ -639,6 +695,10 @@ function dsetLightingEnabled(enabled) {
 ////////////////////////////
 /* RESIZE WINDOW CALLBACK */
 ////////////////////////////
+
+/**
+ * Handles window resize events to keep the renderer and camera aspect ratio correct.
+ */
 function onResize() { 
     'use strict';
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -649,6 +709,10 @@ function onResize() {
 ///////////////////////
 /* KEY DOWN CALLBACK */
 ///////////////////////
+
+/**
+ * Handles all keyboard input for movement, material switching, light toggling, and camera switching.
+ */
 function onKeyDown(e) {
     'use strict';
     keys[e.keyCode] = true;
@@ -720,6 +784,7 @@ function onKeyDown(e) {
             dsetLightingEnabled(lightingEnabled);
             break;
         case 55: // '7'
+            // Switch to fixed camera and adjust transparency of skydome and UFO cockpit
             if (!isFixedCamera) {
                 prevPosition = camera.position.clone();
                 prevTarget = new THREE.Vector3(0, 0, 0);
@@ -763,6 +828,9 @@ function onKeyDown(e) {
     }
 }
 
+/**
+ * Handles key up events for movement.
+ */
 function onKeyUp(e) {
     'use strict';
     keys[e.keyCode] = false;
